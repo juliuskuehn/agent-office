@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { HAIR_COLOR_NAMES, HAIR_COLORS, HAIR_STYLES, SKIN_TONES, randomLook, randomName, type Look } from '../../shared/avatar';
 import { AVATAR_COLORS, saveProfile, store, type Profile } from '../state';
 import { Person } from '../world/character';
@@ -10,7 +9,6 @@ import { h, openModal } from './dom';
 class Preview {
   readonly person: Person;
   private renderer: THREE.WebGLRenderer;
-  private effect: OutlineEffect;
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(28, 1, 0.1, 20);
   private raf = 0;
@@ -28,7 +26,7 @@ class Preview {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
-    this.effect = new OutlineEffect(this.renderer, { defaultThickness: 0.0045, defaultColor: [0.17, 0.18, 0.26] });
+    this.renderer.toneMapping = THREE.NeutralToneMapping;
 
     this.scene.add(new THREE.HemisphereLight('#fff5e6', '#c9a27a', 1.5));
     this.scene.add(new THREE.AmbientLight('#ffffff', 0.5));
@@ -112,7 +110,7 @@ class Preview {
     }
     this.person.root.position.y = y;
     this.person.update(dt, t, false, y > 0.01);
-    this.effect.render(this.scene, this.camera);
+    this.renderer.render(this.scene, this.camera);
   }
 
   dispose() {

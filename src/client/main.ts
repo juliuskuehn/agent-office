@@ -1,6 +1,5 @@
 import './style.css';
 import * as THREE from 'three';
-import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { sameLook } from '../shared/avatar';
 import { BALCONY, DESK_BY_ID, DESKS, ELEVATOR, ELEVATOR_CAR, FLOOR, GOLF_HOLE, LADDER, POLE, POLES, SLAB, STATION_AGENT, STOREY, WALL_HEIGHT, WALL_T, WING, WING_DESKS, beanbagsOut, deskBuilt, deskSeat, inElevator, inWing, roofDrop, seatPlace, streetBelow, vacantSeats, wingMinZ, wingRowZ, type DeskDef, type SeatDef, type SeatPlace, type StationKind } from '../shared/layout';
 import { OFFICE_PLAN, seatOn, type MapPlan } from '../shared/maps';
@@ -123,7 +122,11 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-const effect = new OutlineEffect(renderer, { defaultThickness: 0.0032, defaultColor: [0.17, 0.18, 0.26] });
+// Neutral tone mapping rolls bright light off softly, as a camera does, while keeping colors (and the
+// white of signs and screens) true.
+renderer.toneMapping = THREE.NeutralToneMapping;
+// A touch brighter, for the light the smooth shading takes off the sides that face away from the sun.
+renderer.toneMappingExposure = 1.25;
 
 const scene = new THREE.Scene();
 // The sky's color and the fog change with the time of day and the weather (world/sky.ts).
@@ -145,6 +148,8 @@ sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -32, right: 32, top: 30, bottom: -30, near: 1, far: 100 });
 sun.shadow.bias = -0.0008;
 sun.shadow.normalBias = 0.03;
+// Soft-edged shadows rather than hard cut-outs.
+sun.shadow.radius = 4;
 scene.add(sun);
 
 const office = buildOffice();
@@ -4903,7 +4908,7 @@ function frame(ts?: number) {
   if (blurry) drunkVision.begin();
   else if (drunkVisionOn) drunkVision.release();
   drunkVisionOn = blurry;
-  effect.render(scene, camera);
+  renderer.render(scene, camera);
   pointToWaiting(now);
   // Not while the camera's up at the boss's monitor or the arcade, where they'd cover the screen.
   if (firstPerson && !telescope.active && !arcade.zoomed && !cabinet.zoomed && !golf.active && !thrower.active && !driver.active) {
@@ -4912,7 +4917,10 @@ function frame(ts?: number) {
     renderer.clearDepth();
     hands.setLight(sky.lightAt(camera.position));
     sky.shading(false);
-    effect.render(hands.scene, hands.camera);
+    // Drawn over the office, so without clearing what's already there.
+    renderer.autoClear = false;
+    renderer.render(hands.scene, hands.camera);
+    renderer.autoClear = true;
     sky.shading(true);
   }
   if (blurry) drunkVision.end(drunk, t, !reduceMotion.matches);

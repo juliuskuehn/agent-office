@@ -3,13 +3,22 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 let gradient: THREE.DataTexture | null = null;
 
-/** Three-step ramp that gives MeshToonMaterial its flat cartoon banding. */
+/**
+ * The ramp MeshToonMaterial shades by: a smooth one, so light falls off round a shape as it does on a
+ * real surface instead of in flat cartoon bands. The toon shader looks it up at N·L * 0.5 + 0.5, so the
+ * half facing away from the light is dark and the lit half brightens as the cosine does (Lambert).
+ */
 function gradientMap(): THREE.DataTexture {
   if (gradient) return gradient;
-  const data = new Uint8Array([90, 90, 90, 255, 185, 185, 185, 255, 255, 255, 255, 255]);
-  gradient = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
-  gradient.minFilter = THREE.NearestFilter;
-  gradient.magFilter = THREE.NearestFilter;
+  const n = 64;
+  const data = new Uint8Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    const v = Math.round(255 * Math.max(0, (2 * i) / (n - 1) - 1));
+    data.set([v, v, v, 255], i * 4);
+  }
+  gradient = new THREE.DataTexture(data, n, 1, THREE.RGBAFormat);
+  gradient.minFilter = THREE.LinearFilter;
+  gradient.magFilter = THREE.LinearFilter;
   gradient.needsUpdate = true;
   return gradient;
 }
