@@ -286,20 +286,11 @@ export function roadTexture(): THREE.CanvasTexture {
 }
 
 /**
- * The neighbours' buildings: [x, z, width, height, depth, paint], across the street and further out
- * behind and beside the office. The gap across the street from the balcony is the golf hole's
- * (GOLF_HOLE in layout).
+ * The neighbours' buildings: [x, z, width, height, depth, paint]. None now: past the street there's
+ * only the city's skyline, all round (see buildCity). Add one back across the street, say, as
+ * `[12, 47, 16, 19, 12, '#cdb4db']`; the gap across from the balcony is the golf hole's (GOLF_HOLE).
  */
-const NEIGHBOURS: [number, number, number, number, number, string][] = [
-  [-38, 45, 12, 10, 9, '#8ecae6'],
-  [-22, 46, 14, 16, 10, '#ffb4a2'],
-  [12, 47, 16, 19, 12, '#cdb4db'],
-  [30, 45, 12, 9, 9, '#ffd6a5'],
-  [-20, -42, 18, 14, 10, '#a2d2ff'],
-  [8, -44, 16, 20, 12, '#f4acb7'],
-  [-48, -6, 10, 12, 16, '#ffe5b4'],
-  [50, 4, 10, 15, 18, '#bde0fe'],
-];
+const NEIGHBOURS: [number, number, number, number, number, string][] = [];
 
 /** Which way a neighbour at (x, z) is turned: its front to the office. */
 const facing = (x: number, z: number) => (Math.abs(x) > 40 ? (x > 0 ? -Math.PI / 2 : Math.PI / 2) : z > 0 ? Math.PI : 0);

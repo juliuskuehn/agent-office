@@ -25,8 +25,8 @@ const ROAD = 8;
 const WALK = 2;
 /** How far out the city goes: past this the haze has it anyway. */
 const RADIUS = 330;
-/** How far north of the office the skyline starts (see buildCity), clear of anything by the street. */
-const SKYLINE_SOUTH = 60;
+/** Where the scenic loop's country is, south of the street (LOOP in shared/scenic.ts, with room to spare): no skyline there. */
+const COUNTRY = { minX: -240, maxX: 225, minZ: 15 } as const;
 /** One storey, and one bay of windows, in meters. */
 const STOREY = 3.3;
 const BAY = 2.8;
@@ -280,8 +280,8 @@ interface Car {
 
 /**
  * The city round the rooftop bar, or with `skyline`, only its skyline: the towers out past the city's
- * middle ring to the north, where the country out of town (the scenic loop's farm, mountains and
- * beach, all to the south) leaves room for them. It's the same city, laid out the same way, so the
+ * middle ring all round, but for the country out of town to the south (the scenic loop's farm,
+ * mountains and beach, see COUNTRY). It's the same city, laid out the same way, so the
  * office sees the towers the roof does. The skyline stands on the street at the group's origin and
  * doesn't change with the floors (the towers are their full height from any roof).
  */
@@ -382,8 +382,11 @@ export function buildCity(night: NightParts, { skyline = false }: { skyline?: bo
     }
   }
 
-  // The skyline: the outer ring's towers, north of the office.
-  if (skyline) lots.splice(0, lots.length, ...lots.filter((l) => l.ring === 2 && l.z < -SKYLINE_SOUTH));
+  // The skyline: the outer ring's towers all round the office, and the tallest of the middle ring's,
+  // but for the country the scenic loop runs through south of the street (its farm, pines, lake and
+  // mountains), where no tower stands on its road.
+  const inCountry = (l: Lot) => l.z + l.d / 2 > COUNTRY.minZ && l.x + l.w / 2 > COUNTRY.minX && l.x - l.w / 2 < COUNTRY.maxX;
+  if (skyline) lots.splice(0, lots.length, ...lots.filter((l) => (l.ring === 2 || (l.ring === 1 && l.h > 45)) && !inCountry(l)));
 
   // The office's own building, a floor per project, from the street up to the roof, and the open
   // garage at the bottom: walled at the back and on the west side, columns along the other two.

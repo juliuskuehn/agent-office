@@ -199,12 +199,14 @@ function onWall(side: Side, u: number): { x: number; z: number; rotY: number } {
   }
 }
 
-/** The office's floor, on every floor whatever its palette: one even mid grey, without seams. */
-const OFFICE_FLOOR = { floor: '#6e7279' };
-/** The pink of the rug in front of the TV, which the big rug under the desks is too. */
+/** The pink of the rug in front of the TV, which the whole floor is too. */
 const RUG_PINK = '#ffc6ff';
-/** The big round rug the round table stands on, its chairs and all. */
-const DESK_RUG = { color: RUG_PINK, radius: 4.4 } as const;
+/** The office's floor, on every floor whatever its palette: the rugs' pink all over, without seams. */
+const OFFICE_FLOOR = { floor: RUG_PINK };
+/** The big round rug the round table stands on, its chairs and all: red on the pink. */
+const DESK_RUG = { color: '#d62828', radius: 4.4 } as const;
+/** The walls, their trim and every window's and door's frame, on every floor whatever its palette: one light grey. */
+const OFFICE_WALL = '#e8e8e8';
 
 /** Even planks of one shade throughout, with only the seams between them (if they have any). */
 function paintPlanks(c: HTMLCanvasElement, colors: { floor: string; seam?: string }) {
@@ -363,7 +365,7 @@ function pendant(cord = 0.48): THREE.Group {
 /** A window filling its hole in an outside wall: a frame lining the hole, a mullion, sills and real glass. */
 function windowIn(o: Opening): THREE.Group {
   const g = new THREE.Group();
-  const frame = toon('#ffffff');
+  const frame = toon(OFFICE_WALL);
   const w = o.width;
   const h = o.y1 - o.y0;
   const F = 0.09;
@@ -406,7 +408,7 @@ function wetPane(o: Opening, mat: THREE.Material): THREE.Group {
 /** A door's frame and threshold, lining its hole in the wall (built like windowIn: along x, outdoors toward +z). */
 function doorFrame(o: Opening): THREE.Group {
   const g = new THREE.Group();
-  const frame = toon('#ffffff');
+  const frame = toon(OFFICE_WALL);
   const F = 0.08;
   const D = WALL_T + 0.04;
   g.add(mesh(box(o.width, F, D), frame, 0, o.y1 - F / 2, 0, false));
@@ -1368,8 +1370,8 @@ export function buildOffice(): Office {
   const fixtures: WallRect[] = [];
   const fixture = (wall: WallId, u: number, y: number, w: number, h: number) => fixtures.push({ wall, u0: u - w / 2, u1: u + w / 2, y0: y - h / 2, y1: y + h / 2 });
 
-  // What each floor paints its own way (see setLook): the walls and their trim.
-  const looks: Looks = { wall: toonUnique(PALETTE.wall), trim: toonUnique(PALETTE.wallTrim) };
+  // The walls and their trim, one light grey on every floor (see setLook).
+  const looks: Looks = { wall: toonUnique(OFFICE_WALL), trim: toonUnique(OFFICE_WALL) };
 
   // Floor, and the ceiling, with the ways up and down to the other floors through them (see stack.ts).
   const floorTex = floorTexture();
@@ -1438,7 +1440,7 @@ export function buildOffice(): Office {
   const green = buildGreen(ground, groundColliders, night);
   // Off either end of the street, the scenic loop: the farm, the pines, the mountains and the beach.
   const scenic = buildScenic(ground, groundColliders, night);
-  // Far off to the north, over the neighbours' roofs: the city's skyline, the towers the roof looks out on.
+  // All round, far off: the city's skyline, the towers the roof looks out on.
   const skyline = buildCity(night, { skyline: true });
   skyline.group.position.y = STREET_Y;
   ground.add(skyline.group);
@@ -1735,10 +1737,8 @@ export function buildOffice(): Office {
 
   // No sign over the office's elevator: the floor's name is in the top bar.
   const setProjectName = () => {};
-  const setLook = (p: FloorPalette) => {
-    looks.wall.color.set(p.wall);
-    looks.trim.color.set(p.trim);
-  };
+  // Every floor's walls and trim are OFFICE_WALL now, whatever its palette.
+  const setLook = () => {};
 
   const setLevel = (index: number, count: number, wings: readonly number[] = []) => {
     const drop = index * STOREY;
@@ -1821,7 +1821,7 @@ function buildMeetingRoom(group: THREE.Group, colliders: Collider[], interactabl
   const R = MEETING_ROOM;
   const H = R.height;
   const T = 0.1;
-  const frameMat = toon('#ffffff');
+  const frameMat = toon(OFFICE_WALL);
   const walls = new THREE.Group();
   const bar = (w: number, h: number, d: number, x: number, y: number, z: number) => walls.add(mesh(box(w, h, d), frameMat, x, y, z, false));
   /** A run of glass along x (north wall) or z (west wall), from a to b, in panes about `pane` wide. */
@@ -1962,7 +1962,7 @@ function buildLoft(group: THREE.Group, colliders: Collider[], interactables: Int
   const T = 0.12; // glass wall thickness
   const wallMat = looks.wall;
   const trimMat = looks.trim;
-  const frameMat = toon('#ffffff');
+  const frameMat = toon(OFFICE_WALL);
   const woodMat = toon(PALETTE.wood);
 
   // Floor slab, planked like downstairs, with a trim fascia you see from below.
