@@ -11,16 +11,17 @@
 // Once it has drawn, window.__ready holds each prop's size, triangles, draw calls and material names.
 
 import * as THREE from 'three';
-import { DESKS } from '../../shared/layout';
+import { DESKS, ROUND_TABLES } from '../../shared/layout';
 import { buildCabinet } from '../world/cabinet';
 import { supercar } from '../world/cars';
 import { buildGong } from '../world/gong';
 import { buildJukebox } from '../world/jukebox';
 import { buildKitchen } from '../world/kitchen';
 import { preloadModels } from '../world/models';
-import { DESK_BOOKS, FLOOR_PLANTS, buildDesk, coffeeTable, deskBooks, deskMug, loungeCouch, plant, pouf } from '../world/office';
+import { DESK_BOOKS, FLOOR_PLANTS, buildDesk, buildRoundTable, coffeeTable, deskBooks, deskMug, loungeCouch, plant, pouf } from '../world/office';
 import { toon } from '../world/toon';
 import { ready, stage } from './stage';
+import { Laptop } from '../world/laptop';
 
 /** A prop as the lab shows it: what goes in the scene, and what moves it every frame, if anything. */
 interface Shown {
@@ -41,6 +42,33 @@ const SHOW: Record<string, () => Shown> = {
     return { object: g.group, update: (dt) => g.update(dt) };
   },
   cabinet: () => ({ object: buildCabinet().group }),
+  round_table: () => {
+    // The office's round table as it is with every place taken: each desk, its chair turned in and its display on.
+    const object = new THREE.Group();
+    const t = ROUND_TABLES[0];
+    object.add(buildRoundTable({ x: 0, z: 0 }));
+    const displays: Laptop[] = [];
+    DESKS.filter((d) => d.table).forEach((def, i) => {
+      const desk = buildDesk({ ...def, x: def.x - t.x, z: def.z - t.z }, i, toon('#e8a87c'));
+      desk.vacancy.visible = false;
+      const d = new Laptop('display');
+      desk.laptopAnchor.add(d.root);
+      displays.push(d);
+      object.add(desk.group);
+    });
+    return { object, update: (dt) => displays.forEach((d) => d.update(dt, undefined)) };
+  },
+  devices: () => {
+    // What a worker works at, opened up side by side: the back office's laptop and the round table's display.
+    const object = new THREE.Group();
+    const devices = (['laptop', 'display'] as const).map((style, i) => {
+      const d = new Laptop(style);
+      d.root.position.x = i * 1.1;
+      object.add(d.root);
+      return d;
+    });
+    return { object, update: (dt) => devices.forEach((d) => d.update(dt, undefined)) };
+  },
   kitchen: () => ({ object: buildKitchen().group }),
   plants: () => {
     // The floor plants at scale 1 side by side, then the desk succulent, to compare them. A param of

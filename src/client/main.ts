@@ -2032,7 +2032,8 @@ function syncWorkers() {
       if (desk.def.room && !seatedAlready) arrivals.add(model, desk);
       // In the castle, a worker at the tables gets up and walks about (see Court): a new one runs in to its seat.
       else if (court && inCourt(w)) court.add(w.id, model, desk, seatedAlready ? undefined : cameFrom(w));
-      const laptop = new Laptop(world.device);
+      // At the office's round table, a studio display; otherwise what the map has.
+      const laptop = new Laptop(desk.def.table ? 'display' : world.device);
       desk.laptopAnchor.add(laptop.root);
       noOutline(desk.group);
       desk.chair.rotation.y = 0;

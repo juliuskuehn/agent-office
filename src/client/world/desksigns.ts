@@ -15,7 +15,7 @@ import { TYPEFACE, WEIGHT } from '../typeface';
 /** How big a sign is, how high its middle hangs, and how far apart its two cords are. */
 export const SIGN = { width: 1.9, height: 0.62, depth: 0.04, y: 3.35, cords: 1.3 } as const;
 /** How wide a sign over a place at a round table is. */
-const ROUND_SIGN_WIDTH = 1.6;
+const ROUND_SIGN_WIDTH = 1.3;
 
 const PX = 1024;
 

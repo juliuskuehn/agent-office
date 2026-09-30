@@ -128,6 +128,9 @@ export function paintScreen(ctx: CanvasRenderingContext2D, w: number, h: number,
   }
 }
 
+/** What a worker works at: a laptop, the castle's tome, or a studio display (see Laptop). */
+export type DeviceStyle = 'laptop' | 'tome' | 'display';
+
 export class Laptop {
   readonly root = new THREE.Group();
   private canvas = document.createElement('canvas');
@@ -140,9 +143,14 @@ export class Laptop {
   private placeholder = 'booting…';
   /** Anything else of its own to free (the tome's page). */
   private owned: THREE.Material[] = [];
+  private screenMat: THREE.MeshBasicMaterial;
 
-  /** `tome`: a leather-bound book whose inside page shows the terminal, for the castle; it opens and shuts like the laptop. */
-  constructor(style: 'laptop' | 'tome' = 'laptop') {
+  /**
+   * `tome`: a leather-bound book whose inside page shows the terminal, for the castle; it opens and
+   * shuts like the laptop. `display`: a studio display on its stand, with a keyboard in front, for
+   * the office's round table; rather than open and shut, it wakes up and goes dark.
+   */
+  constructor(private readonly style: DeviceStyle = 'laptop') {
     this.canvas.width = 1024;
     this.canvas.height = 680;
     this.ctx = this.canvas.getContext('2d')!;
@@ -154,7 +162,9 @@ export class Laptop {
     // Lid, hinged along the back edge
     this.lid.position.set(0, 0.035, -0.24);
     this.root.add(this.lid);
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.46), new THREE.MeshBasicMaterial({ map: this.texture, toneMapped: false }));
+    this.screenMat = new THREE.MeshBasicMaterial({ map: this.texture, toneMapped: false });
+    this.owned.push(this.screenMat);
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.46), this.screenMat);
     screen.position.set(0, 0.25, 0.014);
     this.lid.add(screen);
     if (style === 'tome') {
@@ -182,6 +192,25 @@ export class Laptop {
       this.lid.add(seal);
       // A ribbon bookmark hanging out of the pages.
       this.root.add(mesh(new THREE.BoxGeometry(0.03, 0.004, 0.16), toon('#9b1c1c'), 0.2, 0.06, 0.28, false));
+    } else if (style === 'display') {
+      const alu = toon('#d8dce2');
+      const black = toon('#16171b');
+      // The stand: a flat foot, and a sloping plate up from its back to the display's.
+      this.root.add(mesh(roundedBox(0.3, 0.012, 0.26, 0.05), alu, 0, 0.006, -0.1));
+      const arm = mesh(roundedBox(0.28, 0.02, 0.44, 0.04), alu, 0, 0.21, -0.19);
+      arm.rotation.x = Math.PI / 2 - 0.3;
+      this.root.add(arm);
+      // The display: a thin slab of aluminium, black glass edge to edge in front, the screen in it.
+      // In front of the plate where it overlaps it, so the plate's behind it, as a real stand is.
+      this.lid.position.set(0, 0.22, -0.15);
+      const back = mesh(roundedBox(0.8, 0.03, 0.5, 0.025), alu, 0, 0.25, -0.004);
+      back.rotation.x = Math.PI / 2;
+      this.lid.add(back);
+      const glass = mesh(new THREE.PlaneGeometry(0.78, 0.48), black, 0, 0.25, 0.0125, false);
+      this.lid.add(glass);
+      // A slim keyboard in front of it.
+      this.root.add(mesh(roundedBox(0.44, 0.012, 0.14, 0.02), alu, 0, 0.006, 0.2));
+      this.root.add(mesh(new THREE.BoxGeometry(0.4, 0.002, 0.11), toon('#f4f5f7'), 0, 0.013, 0.2, false));
     } else {
       const shell = toon('#c9ced6');
       const dark = toon('#2b2d42');
@@ -197,7 +226,7 @@ export class Laptop {
       sticker.rotation.y = Math.PI;
       this.lid.add(sticker);
     }
-    this.lid.rotation.x = Math.PI / 2; // closed; animates open
+    this.setLid(0); // closed (or dark); opens on update
     paintScreen(this.ctx, this.canvas.width, this.canvas.height, undefined, this.placeholder);
     this.texture.needsUpdate = true;
   }
@@ -231,6 +260,12 @@ export class Laptop {
   private setLid(open: number) {
     this.openT = open;
     const e = 1 - Math.pow(1 - open, 3);
+    // A display stands where it is, tipped back a touch, and lights up.
+    if (this.style === 'display') {
+      this.lid.rotation.x = -0.08;
+      this.screenMat.color.setScalar(e);
+      return;
+    }
     this.lid.rotation.x = Math.PI / 2 - e * (Math.PI / 2 + 0.22);
   }
 
