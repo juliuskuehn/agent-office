@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { FLOOR, LADDER, POLE, POLES, SLAB, WALL_HEIGHT, WALL_T, WINDOWS, type PoleSpot } from '../../shared/layout';
+import { FLOOR, LADDER, POLE, POLES, SLAB, WALL_HEIGHT, WALL_T, type PoleSpot } from '../../shared/layout';
 import type { Collider, Interactable } from './office';
 import { mesh, textPlane, toon } from './toon';
 
@@ -7,8 +7,8 @@ import { mesh, textPlane, toon } from './toon';
 // the ladder up the west wall, and the fire poles. Every floor is built from the same office, so
 // what's here depends on which floor of the building you're on (see Stack.set).
 
-/** The top of the windows either side of the ladder, where the sign to the floor above hangs over. */
-const LADDER_WINDOW_HEAD = Math.max(...WINDOWS.filter((w) => w.wall === 'west').map((w) => w.y1));
+/** How high the sign to the floor above hangs beside the ladder, over the heads of anyone walking past. */
+const LADDER_SIGN_UP = 3.8;
 
 interface Rect {
   minX: number;
@@ -466,9 +466,9 @@ export function buildStack(colliders: Collider[], planks: THREE.Material): Stack
       sign.material.dispose();
     }
     ladderSigns = [];
-    // Above the window beside it and below its sill, so they cover neither.
+    // On the wall beside it: one up high, one down low.
     for (const [name, arrow, y] of [
-      [s.up, '⬆', LADDER_WINDOW_HEAD + 0.48],
+      [s.up, '⬆', LADDER_SIGN_UP],
       [s.down, '⬇', 0.62],
     ] as const) {
       if (!others || !name) continue;

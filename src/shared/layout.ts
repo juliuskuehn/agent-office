@@ -357,28 +357,6 @@ export interface Opening {
 export const BALCONY_DOOR: Opening = { wall: 'south', u: -4, width: 3, y0: 0, y1: 2.5 };
 
 /**
- * The south wall is a glass front: floor-to-ceiling panes about `bay` wide, from a low kerb (`foot`) to
- * just under the ceiling (`head`), all along it either side of the balcony doors, and a pane over them.
- */
-export const GLASS_FRONT = { bay: 3, foot: 0.12, head: WALL_HEIGHT - 0.3 } as const;
-
-/** Panes of the glass front from `u0` to `u1` along the south wall, as near `GLASS_FRONT.bay` wide as fit evenly. */
-function glassBays(u0: number, u1: number): Opening[] {
-  const n = Math.max(1, Math.round((u1 - u0) / GLASS_FRONT.bay));
-  const w = (u1 - u0) / n;
-  return Array.from({ length: n }, (_, i) => ({ wall: 'south' as const, u: u0 + w * (i + 0.5), width: w, y0: GLASS_FRONT.foot, y1: GLASS_FRONT.head }));
-}
-
-/** Windows you can see out of: the glass front all along the south wall, the west wall's three and the loft's one on the east. */
-export const WINDOWS: Opening[] = [
-  ...glassBays(FLOOR.minX, BALCONY_DOOR.u - BALCONY_DOOR.width / 2),
-  { wall: 'south', u: BALCONY_DOOR.u, width: BALCONY_DOOR.width, y0: BALCONY_DOOR.y1 + 0.1, y1: GLASS_FRONT.head },
-  ...glassBays(BALCONY_DOOR.u + BALCONY_DOOR.width / 2, FLOOR.maxX),
-  ...[-9, -3, 3].map((u) => ({ wall: 'west' as const, u, width: 3, y0: 1.1, y1: 3.3 })),
-  { wall: 'east', u: (LOFT.minZ + LOFT.maxZ) / 2, width: 2.8, y0: LOFT.y + 0.9, y1: LOFT.y + 2.5 },
-];
-
-/**
  * A wall's holes by the column of wall each is in, west to east (or north to south): `u0`..`u1`
  * along the wall, and the openings stacked in it bottom to top (a door with a pane over it, say).
  * Openings in one column span it exactly; the wall between them is solid.
@@ -626,3 +604,60 @@ export const POLES: readonly PoleSpot[] = [
 ];
 /** A pole's hole in the floor, the railing round it, and how far from the pole you hang on. */
 export const POLE = { hole: 0.68, rail: 0.9, grip: 0.4, radius: 0.055 } as const;
+
+/**
+ * Every outside wall is a glass front: floor-to-ceiling panes about `bay` wide, from a low kerb (`foot`)
+ * to just under the ceiling (`head`), and a pane over each door. The wall stays solid only behind what
+ * hangs on it or stands against it all the way up (`margin` either side of it), and wherever the gap
+ * left between two such is narrower than `minPane`.
+ */
+export const GLASS_FRONT = { bay: 3, foot: 0.12, head: WALL_HEIGHT - 0.3, margin: 0.15, minPane: 0.6 } as const;
+
+/** Panes along `wall` from `u0` to `u1`, round the `solid` stretches, each as near `GLASS_FRONT.bay` wide as fit evenly. */
+function glassFront(wall: Side, u0: number, u1: number, solid: readonly (readonly [number, number])[]): Opening[] {
+  const panes: Opening[] = [];
+  const glaze = (a: number, b: number) => {
+    if (b - a < GLASS_FRONT.minPane) return;
+    const n = Math.max(1, Math.round((b - a) / GLASS_FRONT.bay));
+    const w = (b - a) / n;
+    for (let i = 0; i < n; i++) panes.push({ wall, u: a + w * (i + 0.5), width: w, y0: GLASS_FRONT.foot, y1: GLASS_FRONT.head });
+  };
+  let u = u0;
+  for (const [a, b] of [...solid].sort((p, q) => p[0] - q[0])) {
+    glaze(u, a);
+    u = Math.max(u, b);
+  }
+  glaze(u, u1);
+  return panes;
+}
+
+/** The stretch of wall `size` wide round `u`, and the margin either side of it. */
+const behind = (u: number, size: number) => [u - size / 2 - GLASS_FRONT.margin, u + size / 2 + GLASS_FRONT.margin] as const;
+/** The whole of a door's column: its hole, with the pane over it (see WINDOWS). */
+const doorway = (o: Opening) => [o.u - o.width / 2, o.u + o.width / 2] as const;
+/** A pane over a door, filling its column up to the glass front's head. */
+const transom = (o: Opening): Opening => ({ wall: o.wall, u: o.u, width: o.width, y0: o.y1 + 0.1, y1: GLASS_FRONT.head });
+
+/**
+ * Windows you can see out of: the glass fronts. Solid on the north wall behind the three boards and the
+ * elevator (the stretch east of WING.minX is the back office's, see buildWing), on the east behind the
+ * TV, and on the west behind the machine's monitor, the ladder and its signs, and the services board
+ * and the basketball hoop beside it, which run on to the corner.
+ */
+export const WINDOWS: Opening[] = [
+  ...glassFront('north', FLOOR.minX, WING.minX, [
+    ...[BOARDS.issues, BOARDS.queue, BOARDS.pulls].map((b) => behind(b.x, b.width)),
+    [ELEVATOR.x - ELEVATOR.width / 2, ELEVATOR.x + ELEVATOR.width / 2],
+  ]),
+  ...glassFront('south', FLOOR.minX, FLOOR.maxX, [doorway(BALCONY_DOOR)]),
+  transom(BALCONY_DOOR),
+  ...glassFront('east', FLOOR.minZ, FLOOR.maxZ, [behind(TV.z, TV.width)]),
+  ...glassFront('west', FLOOR.minZ, FLOOR.maxZ, [
+    behind(MACHINE_MONITOR.z, MACHINE_MONITOR.width),
+    // The ladder, and north of it the signs to the floors above and below (see world/stack.ts).
+    [LADDER.z - LADDER.width / 2 - GLASS_FRONT.margin, LADDER.z + 2.6],
+    doorway(EXIT_DOOR),
+    [BOARDS.services.z - BOARDS.services.width / 2 - GLASS_FRONT.margin, FLOOR.maxZ],
+  ]),
+  transom(EXIT_DOOR),
+];
