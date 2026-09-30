@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, CABINET, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, GONG, JUKEBOX, KIOSK, LADDER, LOFT, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
+import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, CABINET, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, GONG, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
 import { wallFacing, type WallId, type WallRect } from '../../shared/decor';
 import { deskPoint } from '../../shared/nav';
 import { FLOOR_PALETTES, type FloorPalette } from '../../shared/floors';
@@ -1558,15 +1558,15 @@ export function buildOffice(): Office {
   interactables.push(shelf.interactable);
   fixture('south', BOOKSHELF.x, (BOOKSHELF.height + 0.55) / 2, BOOKSHELF.width + 0.2, BOOKSHELF.height + 0.55);
 
-  // Kitchen corner: counter + coffee machine + fridge
+  // The kitchen, in the north-east corner: counter + coffee machine + fridge
   const kitchen = buildKitchen();
   group.add(kitchen.group);
   colliders.push(...kitchen.colliders);
   interactables.push(kitchen.interactable);
-  // Counter, coffee machine and fridge, in front of the south wall.
-  fixture('south', -14.5, 0.55, 5.1, 1.1);
-  fixture('south', -15.7, 0.9, 0.6, 1.8);
-  fixture('south', -11.3, 1.1, 1.1, 2.2);
+  // Counter, coffee machine and fridge, in front of the east wall.
+  fixture('east', (KITCHEN.counter.minZ + KITCHEN.counter.maxZ) / 2, 0.55, KITCHEN.counter.maxZ - KITCHEN.counter.minZ + 0.1, 1.1);
+  fixture('east', KITCHEN.machine.z, 0.9, 0.6, 1.8);
+  fixture('east', KITCHEN.fridgeAt.z, 1.1, 1.1, 2.2);
 
   // Plants around the room
   const plants: THREE.Group[] = [];
@@ -1643,7 +1643,7 @@ export function buildOffice(): Office {
   interactables.push(gong.interactable);
   fixture('north', GONG.x, (GONG.height + 0.3) / 2, GONG.width + 1.2, GONG.height + 0.3);
 
-  // The basketball hoop, on the west wall between the exit door and the kitchen.
+  // The basketball hoop, at the south end of the west wall.
   const hoop = buildHoop();
   group.add(hoop.group);
   colliders.push(...hoop.colliders);

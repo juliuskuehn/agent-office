@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { BALCONY, DESKS, DESK_SIZE, EXIT_STAIRS, FLOOR, PLANTS, STREET_Y, WALL_HEIGHT, WINDOWS } from '../../shared/layout';
+import { BALCONY, DESKS, DESK_SIZE, EXIT_STAIRS, FLOOR, KITCHEN, PLANTS, STREET_Y, WALL_HEIGHT, WINDOWS } from '../../shared/layout';
 import type { Theme } from '../../shared/protocol';
 import { batWingGeometry, glowTexture } from './costumes';
 import { plantLeaves, type Collider, type Office } from './office';
@@ -41,7 +41,7 @@ const DESK_SPOTS: Spot[] = DESKS.map((d, i) => {
 function pumpkinSpots(): Spot[] {
   const spots: Spot[] = [...DESK_SPOTS];
   // The kitchen counter, and the lounge's coffee table.
-  spots.push([-13, 1.03, 12.2, 0.14, FACE.north], [-16.65, 1.03, 12.25, 0.11, FACE.north], [13, 0.46, 0.25, 0.17, FACE.west]);
+  spots.push([KITCHEN.x, KITCHEN.counter.top, KITCHEN.z - 1.5, 0.14, FACE.west], [KITCHEN.x + 0.05, KITCHEN.counter.top, KITCHEN.z + 2.15, 0.11, FACE.west], [13, 0.46, 0.25, 0.17, FACE.west]);
   // On the window sills, looking in.
   for (const o of WINDOWS) {
     if (o.y0 > 2) continue;

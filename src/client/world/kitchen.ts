@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { model, paintModel, palette } from './models';
 import { toon } from './toon';
+import { KITCHEN } from '../../shared/layout';
 import type { Collider, Interactable } from './office';
 
-// The kitchen corner against the south wall, modelled in Blender (blender/scripts/build_kitchen.py): a
+// The kitchen along the east wall's north end (see KITCHEN), modelled in Blender (blender/scripts/build_kitchen.py): a
 // counter with a wooden top and a sink under the window, a chunky espresso machine (E at it pours you
 // a cup, see main.ts) and a round-shouldered retro fridge with notes stuck on it.
 
@@ -29,7 +30,7 @@ const COLORS: Record<string, string> = {
 
 export function buildKitchen(): Kitchen {
   const group = new THREE.Group();
-  const interactable: Interactable = { kind: 'coffee', x: -15.7, z: 10.9, radius: 1.4 };
+  const interactable: Interactable = { kind: 'coffee', x: KITCHEN.pour.x, z: KITCHEN.pour.z, radius: 1.4 };
   const kitchen = model('kitchen');
   if (kitchen) {
     const paint = palette(COLORS);
@@ -40,13 +41,10 @@ export function buildKitchen(): Kitchen {
     const machine = kitchen.scene.getObjectByName('coffee_machine');
     if (machine) machine.userData.interact = interactable;
   }
-  // Modelled facing +z like everything else; against the south wall it turns round to face into the
-  // room, which puts the machine at x -15.7 and the fridge at x -11.3.
-  group.position.set(-14.5, 0, 12.2);
-  group.rotation.y = Math.PI;
-  const colliders: Collider[] = [
-    { minX: -17, maxX: -12, minZ: 11.7, maxZ: 12.7, top: 1.03 },
-    { minX: -11.85, maxX: -10.75, minZ: 11.7, maxZ: 12.7, top: 2.2 },
-  ];
+  // Modelled facing +z like everything else, the fridge 3.2 m to its left and the machine 1.2 m to its
+  // right; against the east wall it turns to face into the room (-x), the fridge to the north.
+  group.position.set(KITCHEN.x, 0, KITCHEN.z);
+  group.rotation.y = KITCHEN.rotY;
+  const colliders: Collider[] = [{ ...KITCHEN.counter }, { ...KITCHEN.fridge }];
   return { group, colliders, interactable };
 }
