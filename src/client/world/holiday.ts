@@ -41,7 +41,7 @@ const DESK_SPOTS: Spot[] = DESKS.map((d) => {
 function pumpkinSpots(): Spot[] {
   const spots: Spot[] = [...DESK_SPOTS];
   // The kitchen counter, and the lounge's coffee table.
-  spots.push([KITCHEN.x, KITCHEN.counter.top, KITCHEN.z - 1.5, 0.14, FACE.west], [KITCHEN.x + 0.05, KITCHEN.counter.top, KITCHEN.z + 2.15, 0.11, FACE.west], [LOUNGE.x - 0.4, 0.46, LOUNGE.z + 0.25, 0.17, FACE.west]);
+  spots.push([KITCHEN.x - 1.5, KITCHEN.counter.top, KITCHEN.z, 0.14, FACE.south], [KITCHEN.x + 2.15, KITCHEN.counter.top, KITCHEN.z + 0.05, 0.11, FACE.south], [LOUNGE.x - 0.4, 0.46, LOUNGE.z + 0.25, 0.17, FACE.west]);
   // On the window sills, looking in.
   for (const o of WINDOWS) {
     if (o.y0 > 2) continue;
@@ -54,7 +54,7 @@ function pumpkinSpots(): Spot[] {
     spots.push([x - (x / d) * 0.55 * s, 0, z - (z / d) * 0.55 * s, 0.2 * s, Math.atan2(-x, -z)]);
   }
   // Under the TV, beside the elevator, out on the balcony and on the landing outside the exit.
-  spots.push([TV.x - 2.4, 0, TV.z + 0.4, 0.22, FACE.south], [TV.x + 2.4, 0, TV.z + 0.4, 0.17, FACE.south], [10.35, 0, FLOOR.minZ + 0.4, 0.22, FACE.south]);
+  spots.push([TV.x - 0.4, 0, TV.z - TV.width / 2 + 0.3, 0.22, FACE.west], [TV.x - 0.4, 0, TV.z + TV.width / 2 - 0.3, 0.17, FACE.west], [10.35, 0, FLOOR.minZ + 0.4, 0.22, FACE.south]);
   for (const x of [-9.3, -5.8, -2.2, 1.4]) spots.push([x, 1.105, BALCONY.maxZ - 0.06, 0.13, FACE.north]);
   // (Only the south-east corner: the south-west one has the balcony's potted plant.)
   spots.push([BALCONY.maxX - 0.4, 0, BALCONY.maxZ - 0.4, 0.2, FACE.north]);

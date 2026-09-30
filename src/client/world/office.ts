@@ -1490,24 +1490,32 @@ export function buildOffice(): Office {
     const collider = { minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs), top: BEANBAG_BOX.top };
     beanbags.set(def.id, { view, it, collider });
   });
-  // The board agents' kiosks, each just west of its board.
+  // The board agents' kiosks, each beside its board.
   for (const def of STATIONS) {
     const view = buildKiosk(def);
     group.add(view.group);
     desks.set(def.id, view);
-    // The kiosk and the agent behind it, back to the wall (they all stand by the north wall) so
-    // nobody squeezes in behind, and up over the agent's head so nobody hops on it.
+    // The kiosk and the agent behind it, back to the wall so nobody squeezes in behind, and up over
+    // the agent's head so nobody hops on it.
     const corners = [-1, 1].flatMap((t) => [-KIOSK.depth / 2, KIOSK.stand + 0.35].map((sz) => deskPoint(def, (t * KIOSK.width) / 2, sz)));
     const xs = corners.map(([x]) => x);
     const zs = corners.map(([, z]) => z);
-    colliders.push({ minX: Math.min(...xs), maxX: Math.max(...xs), minZ: FLOOR.minZ, maxZ: Math.max(...zs), top: 1.5, fence: true });
+    const wall = wallFacing(def.rotY + Math.PI);
+    colliders.push({
+      minX: wall === 'west' ? FLOOR.minX : Math.min(...xs),
+      maxX: wall === 'east' ? FLOOR.maxX : Math.max(...xs),
+      minZ: wall === 'north' ? FLOOR.minZ : Math.min(...zs),
+      maxZ: wall === 'south' ? FLOOR.maxZ : Math.max(...zs),
+      top: 1.5,
+      fence: true,
+    });
     // Walk up to its front.
     const [fx, fz] = deskPoint(def, 0, -1);
     const it: Interactable = { kind: 'station', deskId: def.id, x: fx, z: fz, radius: 1.3 };
     interactables.push(it);
     view.group.userData.interact = it;
     // The agent, its name tag and the card over its head, up against the wall.
-    fixture('north', def.x, 1.45, 1.4, 2.9);
+    fixture(wall, wall === 'north' || wall === 'south' ? def.x : def.z, 1.45, 1.4, 2.9);
   }
   const setBeanbags = (out: Set<string>) => {
     const appeared: Collider[] = [];
@@ -1553,13 +1561,14 @@ export function buildOffice(): Office {
   const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(TV.width, TV.height), new THREE.MeshBasicMaterial({ color: '#1b1d2e' }));
   tvScreen.position.z = 0.08;
   tvGroup.add(tvScreen);
-  // On the north wall, facing into the room.
-  tvGroup.position.set(TV.x, TV.y, TV.z);
+  // On the east wall, facing into the room.
+  tvGroup.position.set(TV.x - 0.1, TV.y, TV.z);
+  tvGroup.rotation.y = -Math.PI / 2;
   group.add(tvGroup);
-  const tv: Interactable = { kind: 'tv', x: TV.x, z: TV.z + 4.5, radius: 3.2 };
+  const tv: Interactable = { kind: 'tv', x: TV.x - 4.5, z: TV.z, radius: 3.2 };
   interactables.push(tv);
   tvGroup.userData.interact = tv;
-  fixture('north', TV.x, TV.y, TV.width + 0.3, TV.height + 0.3);
+  fixture('east', TV.z, TV.y, TV.width + 0.3, TV.height + 0.3);
 
   // The machine monitor on the north wall past the elevator, facing into the room.
   const monitor = new THREE.Group();
@@ -1637,15 +1646,15 @@ export function buildOffice(): Office {
   interactables.push(shelf.interactable);
   fixture('west', BOOKSHELF.z, (BOOKSHELF.height + 0.55) / 2, BOOKSHELF.width + 0.2, BOOKSHELF.height + 0.55);
 
-  // The kitchen, in the north-east corner: counter + coffee machine + fridge
+  // The kitchen, in the north-west corner: counter + coffee machine + fridge
   const kitchen = buildKitchen();
   group.add(kitchen.group);
   colliders.push(...kitchen.colliders);
   interactables.push(kitchen.interactable);
-  // Counter, coffee machine and fridge, in front of the east wall.
-  fixture('east', (KITCHEN.counter.minZ + KITCHEN.counter.maxZ) / 2, 0.55, KITCHEN.counter.maxZ - KITCHEN.counter.minZ + 0.1, 1.1);
-  fixture('east', KITCHEN.machine.z, 0.9, 0.6, 1.8);
-  fixture('east', KITCHEN.fridgeAt.z, 1.1, 1.1, 2.2);
+  // Counter, coffee machine and fridge, in front of the north wall.
+  fixture('north', (KITCHEN.counter.minX + KITCHEN.counter.maxX) / 2, 0.55, KITCHEN.counter.maxX - KITCHEN.counter.minX + 0.1, 1.1);
+  fixture('north', KITCHEN.machine.x, 0.9, 0.6, 1.8);
+  fixture('north', KITCHEN.fridgeAt.x, 1.1, 1.1, 2.2);
 
   // Plants around the room
   const plants: THREE.Group[] = [];
@@ -1728,7 +1737,8 @@ export function buildOffice(): Office {
   fixture('east', loftZ, LOFT.y + 0.5, 2.4, 1);
   fixture('south', LOFT.maxX - 3, LOFT.y + 1.9, 2.6, 0.6);
 
-  const setProjectName = (name: string) => elevator.setSign(`🛗 ${name}`);
+  // No sign over the office's elevator: the floor's name is in the top bar.
+  const setProjectName = () => {};
   const setLook = (p: FloorPalette) => {
     looks.wall.color.set(p.wall);
     looks.trim.color.set(p.trim);
