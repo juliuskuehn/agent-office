@@ -23,6 +23,8 @@ export interface DeskDef {
   wing?: number;
   /** A place at one of the round tables (see ROUND_TABLES): the table's middle. (x, z) is where its laptop sits. */
   table?: { x: number; z: number };
+  /** A place on the lounge's Togo sofa (see LOUNGE), its laptop on the low table in front. */
+  lounge?: boolean;
 }
 
 const DESK_WIDTH = 2.2;
@@ -36,6 +38,21 @@ export const DESK_SIZE = { width: DESK_WIDTH, depth: DESK_DEPTH, height: 0.78 } 
  * (deskSeat), past the edge.
  */
 export const ROUND_TABLE = { radius: 2.4, height: DESK_SIZE.height, places: 8, place: 1.75 } as const;
+
+/**
+ * The lounge, in from the east wall's glass: the middle of its rug. The couch is at its west side,
+ * facing east over the coffee table in the middle; a pouf either side; and across from the couch, a
+ * Togo sofa (LOUNGE_TOGO) with a low table in front of it, where two workers code at laptops
+ * (LOUNGE_DESKS). The fire pole's railing is just west of the couch.
+ */
+export const LOUNGE = { x: 11.4, z: 0, rug: 7 } as const;
+/** The Togo: its middle, how wide and deep it is, and how high its seat is, facing west (-x). */
+export const LOUNGE_TOGO = { x: LOUNGE.x + 2.4, z: LOUNGE.z, width: 1.9, depth: 1.02, seat: 0.38 } as const;
+/**
+ * The places on the Togo: where their laptops sit on the low table in front of it (x), and how far
+ * along it each is from its middle. The worker sits 0.85 m behind the laptop (deskSeat), on the Togo.
+ */
+export const LOUNGE_DESKS = { x: LOUNGE_TOGO.x - 0.85, places: [-0.45, 0.45], table: { width: 1.7, depth: 0.45, height: 0.42 } } as const;
 export const ROUND_TABLES: readonly { x: number; z: number }[] = [{ x: -6, z: 0 }];
 
 function buildDesks(): DeskDef[] {
@@ -50,6 +67,11 @@ function buildDesks(): DeskDef[] {
       desks.push({ id: `desk-${n}`, x, z, rotY, label: `Desk ${n}`, table });
       n++;
     }
+  }
+  // Then the Togo's two in the lounge, facing west across the low table.
+  for (const dz of LOUNGE_DESKS.places) {
+    desks.push({ id: `desk-${n}`, x: LOUNGE_DESKS.x, z: LOUNGE.z + dz, rotY: Math.PI / 2, label: `Desk ${n}`, lounge: true });
+    n++;
   }
   return desks;
 }
@@ -241,7 +263,7 @@ export function deskSeat(desk: DeskDef, offset = 0.85): { x: number; z: number }
 
 /** How big every wall board is, and how high the middles of a stack's two hang. */
 const BOARD_SIZE = { width: 4.2, height: 2.1 } as const;
-const BOARD_ROWS = { bottom: 1.4, top: 3.65 } as const;
+const BOARD_ROWS = { bottom: 1.3, top: 3.85 } as const;
 /** Wall boards. `rotY` is the way the board faces (0 = +z, like the north-wall boards). */
 export const BOARDS = {
   // Two stacks of two on the north wall, either side of the TV, the way work goes: the issues over
@@ -484,11 +506,11 @@ export interface SeatDef {
  * them there). Workers have their own seats, the desks and bean bags in SEATS.
  */
 export const SEATING: SeatDef[] = [
-  // The lounge couch, its back to the room, facing the TV.
-  { id: 'couch', label: '🛋️ Couch', x: 10.5, y: 0, z: 0, rotY: Math.PI / 2, places: [-1.2, 0, 1.2], hips: 0.5, depth: -0.05, out: 0.9, tv: true },
+  // The lounge couch, its back to the room, facing east across the lounge.
+  { id: 'couch', label: '🛋️ Couch', x: LOUNGE.x - 2.9, y: 0, z: LOUNGE.z, rotY: Math.PI / 2, places: [-1.2, 0, 1.2], hips: 0.5, depth: -0.05, out: 0.9, tv: true },
   // Beanbags either side of the lounge, turned to the TV.
-  { id: 'lounge-beanbag-1', label: '🫘 Beanbag', x: 12.5, y: 0, z: 3.5, rotY: Math.atan2(TV.x - 12.5, TV.z - 3.5), places: [0], hips: 0.42, depth: -0.1, out: 1.2 },
-  { id: 'lounge-beanbag-2', label: '🫘 Beanbag', x: 14.5, y: 0, z: -3.4, rotY: Math.atan2(TV.x - 14.5, TV.z + 3.4), places: [0], hips: 0.42, depth: -0.1, out: 1.2 },
+  { id: 'lounge-beanbag-1', label: '🫘 Beanbag', x: LOUNGE.x - 0.9, y: 0, z: LOUNGE.z + 3.5, rotY: Math.atan2(TV.x - (LOUNGE.x - 0.9), TV.z - (LOUNGE.z + 3.5)), places: [0], hips: 0.42, depth: -0.1, out: 1.2 },
+  { id: 'lounge-beanbag-2', label: '🫘 Beanbag', x: LOUNGE.x + 1.1, y: 0, z: LOUNGE.z - 3.4, rotY: Math.atan2(TV.x - (LOUNGE.x + 1.1), TV.z - (LOUNGE.z - 3.4)), places: [0], hips: 0.42, depth: -0.1, out: 1.2 },
   // Up in the boss office: the couch against the east wall, and the chair at the big desk, facing the glass.
   { id: 'loft-couch', label: '🛋️ Couch', x: LOFT.maxX - 0.65, y: LOFT.y, z: (LOFT.minZ + LOFT.maxZ) / 2, rotY: -Math.PI / 2, places: [-0.5, 0.5], hips: 0.5, depth: -0.05, out: 0.9 },
   { id: 'boss-chair', label: "🪑 Boss's chair", x: (LOFT.minX + LOFT.maxX) / 2 + 0.5, y: LOFT.y, z: (LOFT.minZ + LOFT.maxZ) / 2 + 0.7, rotY: Math.PI, places: [0], hips: 0.62, depth: -0.05, out: -0.8, game: true },

@@ -14,8 +14,9 @@ import { TYPEFACE, WEIGHT } from '../typeface';
 
 /** How big a sign is, how high its middle hangs, and how far apart its two cords are. */
 export const SIGN = { width: 1.9, height: 0.62, depth: 0.04, y: 3.35, cords: 1.3 } as const;
-/** How wide a sign over a place at a round table is. */
+/** How wide a sign over a place at a round table is, and over one on the lounge's Togo (they're closer together). */
 const ROUND_SIGN_WIDTH = 1.3;
+const LOUNGE_SIGN_WIDTH = 0.85;
 
 const PX = 1024;
 
@@ -105,8 +106,8 @@ export function buildDeskSigns(): DeskSigns {
     root.rotation.y = desk.rotY;
     // Just off the far edge of the desk, so a back-to-back pair's signs don't touch. At a round table,
     // out over the place toward its chair instead, and narrower, so the four round it clear each other.
-    const z = desk.table ? 0.25 : -DESK_SIZE.depth / 2 + SIGN.depth / 2 + 0.012;
-    const width = desk.table ? ROUND_SIGN_WIDTH : SIGN.width;
+    const z = desk.table || desk.lounge ? 0.25 : -DESK_SIZE.depth / 2 + SIGN.depth / 2 + 0.012;
+    const width = desk.table ? ROUND_SIGN_WIDTH : desk.lounge ? LOUNGE_SIGN_WIDTH : SIGN.width;
     const parts = new THREE.Group();
     const board = mesh(roundedBox(width, SIGN.depth, SIGN.height, 0.08), toon(label.color), 0, SIGN.y, z, false);
     board.rotation.x = Math.PI / 2;
@@ -153,7 +154,7 @@ export function buildDeskSigns(): DeskSigns {
    * own there, or it's over a place at a round table, whose back faces across the table.
    */
   const twoSided = (id: string, labels: Record<string, DeskLabel>, built: (desk: DeskDef) => boolean) => {
-    if (DESK_BY_ID.get(id)?.table) return true;
+    if (DESK_BY_ID.get(id)?.table || DESK_BY_ID.get(id)?.lounge) return true;
     const other = PARTNER.get(id);
     const desk = other ? DESK_BY_ID.get(other) : undefined;
     return !!desk && built(desk) && !labels[desk.id];

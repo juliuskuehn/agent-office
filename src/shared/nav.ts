@@ -4,7 +4,7 @@
 // An office floor built out into the back office (see WING) has more of it to get round: the office's
 // helpers take how many rows it's built out (`wing`), and each level gets a grid of its own.
 
-import { BALCONY, BALCONY_DOOR, BEANBAGS, BOOKSHELF_BOX, DESK_SIZE, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PARACHUTE, POLE, POLES, ROAD, ROUND_TABLE, ROUND_TABLES, STAIRS, STATIONS, WING, builtDesks, plantsAt, wingLevel, wingMinZ, type DeskDef } from './layout.js';
+import { BALCONY, BALCONY_DOOR, BEANBAGS, BOOKSHELF_BOX, DESK_SIZE, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, LOUNGE, LOUNGE_DESKS, LOUNGE_TOGO, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PARACHUTE, POLE, POLES, ROAD, ROUND_TABLE, ROUND_TABLES, STAIRS, STATIONS, WING, builtDesks, plantsAt, wingLevel, wingMinZ, type DeskDef } from './layout.js';
 
 
 export type Pt = [number, number];
@@ -54,9 +54,15 @@ function obstacles(wing: number): Obstacles {
     const [cx, cz] = deskPoint(d, 0, 0.9);
     circles.push([cx, cz, 0.35]); // the chair
   }
-  rects.push([10, 11, -2.2, 2.2]); // couch
-  rects.push([12.2, 13.8, -0.8, 0.8]); // coffee table
-  circles.push([12.5, 3.5, 0.5], [14.5, -3.4, 0.5]); // beanbags
+  const { x: lx, z: lz } = LOUNGE;
+  rects.push([lx - 3.4, lx - 2.4, lz - 2.2, lz + 2.2]); // couch
+  rects.push([lx - 1.2, lx + 0.4, lz - 0.8, lz + 0.8]); // coffee table
+  circles.push([lx - 0.9, lz + 3.5, 0.5], [lx + 1.1, lz - 3.4, 0.5]); // beanbags
+  // The Togo, and the low table in front of it.
+  const togo = LOUNGE_TOGO;
+  rects.push([togo.x - togo.depth / 2, togo.x + togo.depth / 2, togo.z - togo.width / 2, togo.z + togo.width / 2]);
+  const lt = LOUNGE_DESKS.table;
+  rects.push([LOUNGE_DESKS.x - lt.depth / 2, LOUNGE_DESKS.x + lt.depth / 2, lz - lt.width / 2, lz + lt.width / 2]);
   for (const k of [KITCHEN.counter, KITCHEN.fridge]) rects.push([k.minX, k.maxX, k.minZ, k.maxZ]); // kitchen counter and fridge
   for (const [x, z, s] of plantsAt(wing)) circles.push([x, z, 0.3 * s]);
   // The loft's posts, the stairs up to it, and the elevator shaft.

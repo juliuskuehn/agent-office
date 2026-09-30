@@ -212,19 +212,17 @@ export class Laptop {
       this.root.add(mesh(roundedBox(0.44, 0.012, 0.14, 0.02), alu, 0, 0.006, 0.2));
       this.root.add(mesh(new THREE.BoxGeometry(0.4, 0.002, 0.11), toon('#f4f5f7'), 0, 0.013, 0.2, false));
     } else {
-      const shell = toon('#c9ced6');
-      const dark = toon('#2b2d42');
-      // Base with keyboard
-      this.root.add(mesh(roundedBox(0.78, 0.035, 0.52, 0.04), shell, 0, 0.018, 0.02));
-      this.root.add(mesh(new THREE.BoxGeometry(0.66, 0.006, 0.24), dark, 0, 0.037, 0.0, false));
-      this.root.add(mesh(new THREE.BoxGeometry(0.2, 0.004, 0.11), toon('#aab1bb'), 0, 0.037, 0.19, false));
-      const lidShell = mesh(roundedBox(0.78, 0.025, 0.5, 0.04), shell, 0, 0.25, 0);
+      // A MacBook Pro-ish laptop: space grey all over, black keys, and black glass round the screen.
+      const shell = toon('#7d8189');
+      const dark = toon('#141518');
+      // Base with keyboard and trackpad
+      this.root.add(mesh(roundedBox(0.78, 0.03, 0.52, 0.04), shell, 0, 0.015, 0.02));
+      this.root.add(mesh(new THREE.BoxGeometry(0.66, 0.004, 0.24), dark, 0, 0.031, 0.0, false));
+      this.root.add(mesh(new THREE.BoxGeometry(0.3, 0.003, 0.15), toon('#8a8e96'), 0, 0.031, 0.18, false));
+      const lidShell = mesh(roundedBox(0.78, 0.02, 0.5, 0.04), shell, 0, 0.25, -0.002);
       lidShell.rotation.x = Math.PI / 2;
       this.lid.add(lidShell);
-      // Sticker on the back of the lid
-      const sticker = mesh(new THREE.CircleGeometry(0.07, 20), toon('#ff8a5b'), 0, 0.27, -0.014, false);
-      sticker.rotation.y = Math.PI;
-      this.lid.add(sticker);
+      this.lid.add(mesh(new THREE.PlaneGeometry(0.76, 0.48), dark, 0, 0.25, 0.0105, false));
     }
     this.setLid(0); // closed (or dark); opens on update
     paintScreen(this.ctx, this.canvas.width, this.canvas.height, undefined, this.placeholder);

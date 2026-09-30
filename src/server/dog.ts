@@ -1,21 +1,23 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { DESK_BY_ID, FLOOR, KIOSK, type DeskDef } from '../shared/layout.js';
+import { DESK_BY_ID, FLOOR, KIOSK, LOUNGE, type DeskDef } from '../shared/layout.js';
 import { cleanDogName, dogAt, dogDefaults, legSeconds, type DogAct, type DogBreed, type DogState } from '../shared/dog.js';
 import { deskPoint, nearestWalkable, route, walkable, type Pt } from '../shared/nav.js';
 import type { PeerInfo, WorkerInfo } from '../shared/protocol.js';
 
 // ---- Its day ------------------------------------------------------------------------------------
 
-/** Spots on the lounge rug, by the TV. */
-const LOUNGE: Pt[] = [
-  [16, 1.6],
-  [16, -1.5],
-  [14.8, 1.9],
-  [11.8, 2.4],
-  [11.8, -2.6],
-  [14.6, -1.3],
-];
+/** Spots on the lounge rug. */
+const LOUNGE_SPOTS: Pt[] = (
+  [
+    [2.6, 1.6],
+    [2.6, -1.5],
+    [1.4, 1.9],
+    [-1.6, 2.4],
+    [-1.6, -2.6],
+    [1.2, -1.3],
+  ] as const
+).map(([dx, dz]) => [LOUNGE.x + dx, LOUNGE.z + dz]);
 
 const TROT = 1.3;
 const RUN = 3.4;
@@ -83,7 +85,7 @@ export class Dog {
     this.file = path.join(dataDir, 'dog.json');
     this.name = this.load() ?? d.name;
     // Lying on the rug when the office opens, and up and about a few seconds later.
-    const spot = pick(LOUNGE);
+    const spot = pick(LOUNGE_SPOTS);
     this.leg = { path: [spot], speed: 0, act: 'lie', face: Math.PI / 2 + rand(-0.6, 0.6), start: Date.now() - 60_000 };
     this.wake(rand(3000, 8000));
   }
@@ -257,8 +259,8 @@ export class Dog {
   private lounge() {
     this.mode = 'lounge';
     const at = this.here();
-    const spot = pick(LOUNGE.filter((p) => dist(p, at) > 1));
-    // Settles down facing the TV, more or less.
+    const spot = pick(LOUNGE_SPOTS.filter((p) => dist(p, at) > 1));
+    // Settles down facing east, across the lounge, more or less.
     const ms = this.walkTo(spot, TROT, 'lie', { face: Math.PI / 2 + rand(-0.7, 0.7) });
     this.wake(ms + rand(20_000, 45_000));
   }

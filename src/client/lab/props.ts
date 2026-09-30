@@ -19,7 +19,7 @@ import { buildGong } from '../world/gong';
 import { buildJukebox } from '../world/jukebox';
 import { buildKitchen } from '../world/kitchen';
 import { preloadModels } from '../world/models';
-import { DESK_BOOKS, FLOOR_PLANTS, buildDesk, buildRoundTable, coffeeTable, deskBooks, deskMug, loungeCouch, plant, pouf } from '../world/office';
+import { DESK_BOOKS, FLOOR_PLANTS, buildDesk, buildRoundTable, coffeeTable, togoSofa, deskBooks, deskMug, loungeCouch, plant, pouf } from '../world/office';
 import { toon } from '../world/toon';
 import { ready, stage } from './stage';
 import { Laptop } from '../world/laptop';
@@ -66,6 +66,8 @@ const SHOW: Record<string, () => Shown> = {
     });
     return { object, update: (dt) => displays.forEach((d) => d.update(dt, undefined)) };
   },
+  // The lounge's Togo sofa.
+  togo: () => ({ object: togoSofa() }),
   devices: () => {
     // What a worker works at, opened up side by side: the back office's laptop and the round table's display.
     const object = new THREE.Group();
