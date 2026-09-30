@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BALCONY, BALCONY_DOOR, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, FLOOR, ROOF_BAR, SLAB, STAGE, STOREY, STREET_Y, WALL_HEIGHT, WALL_T, WINDOWS, WING, wingMinZ, wingRowZ, type Opening, type Side } from '../../shared/layout';
+import { BALCONY, BALCONY_DOOR, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, FLOOR, ROOF_BAR, SLAB, STAGE, STOREY, STREET_Y, WALL_HEIGHT, WALL_T, WINDOWS, WING, wallColumns, wingMinZ, wingRowZ, type Opening, type Side } from '../../shared/layout';
 import type { Collider } from './office';
 import { bulb, type NightParts } from './outside';
 import { mergeByMaterial, mesh, toon, toonUnique } from './toon';
@@ -107,12 +107,14 @@ export function buildTower(colliders: Collider[], night: NightParts): Tower {
     };
     piece(f.u0, f.u1, y0 - SLAB, y0, band);
     let u = f.u0;
-    for (const o of [...holes].sort((a, b) => a.u - b.u)) {
-      const h0 = o.u - o.width / 2;
-      const h1 = o.u + o.width / 2;
+    for (const { u0: h0, u1: h1, stack } of wallColumns(holes)) {
       piece(u, h0, y0, y0 + WALL_HEIGHT, paint);
-      piece(h0, h1, y0, y0 + o.y0, paint);
-      piece(h0, h1, y0 + o.y1, y0 + WALL_HEIGHT, paint);
+      let y = 0;
+      for (const o of stack) {
+        piece(h0, h1, y0 + y, y0 + o.y0, paint);
+        y = o.y1;
+      }
+      piece(h0, h1, y0 + y, y0 + WALL_HEIGHT, paint);
       u = h1;
     }
     piece(u, f.u1, y0, y0 + WALL_HEIGHT, paint);

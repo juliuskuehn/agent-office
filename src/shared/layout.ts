@@ -335,13 +335,47 @@ export interface Opening {
   y1: number;
 }
 
-/** Windows you can see out of, and the loft's two, which sit higher up. */
+/** Glass doors out to the balcony, on the south wall. They slide apart into the wall on either side. */
+export const BALCONY_DOOR: Opening = { wall: 'south', u: -4, width: 3, y0: 0, y1: 2.5 };
+
+/**
+ * The south wall is a glass front: floor-to-ceiling panes about `bay` wide, from a low kerb (`foot`) to
+ * just under the ceiling (`head`), all along it either side of the balcony doors, and a pane over them.
+ */
+export const GLASS_FRONT = { bay: 3, foot: 0.12, head: WALL_HEIGHT - 0.3 } as const;
+
+/** Panes of the glass front from `u0` to `u1` along the south wall, as near `GLASS_FRONT.bay` wide as fit evenly. */
+function glassBays(u0: number, u1: number): Opening[] {
+  const n = Math.max(1, Math.round((u1 - u0) / GLASS_FRONT.bay));
+  const w = (u1 - u0) / n;
+  return Array.from({ length: n }, (_, i) => ({ wall: 'south' as const, u: u0 + w * (i + 0.5), width: w, y0: GLASS_FRONT.foot, y1: GLASS_FRONT.head }));
+}
+
+/** Windows you can see out of: the glass front all along the south wall, the west wall's three and the loft's one on the east. */
 export const WINDOWS: Opening[] = [
-  ...[-14, -9, 1].map((u) => ({ wall: 'south' as const, u, width: 3, y0: 1.1, y1: 3.3 })),
+  ...glassBays(FLOOR.minX, BALCONY_DOOR.u - BALCONY_DOOR.width / 2),
+  { wall: 'south', u: BALCONY_DOOR.u, width: BALCONY_DOOR.width, y0: BALCONY_DOOR.y1 + 0.1, y1: GLASS_FRONT.head },
+  ...glassBays(BALCONY_DOOR.u + BALCONY_DOOR.width / 2, FLOOR.maxX),
   ...[-9, -3, 3].map((u) => ({ wall: 'west' as const, u, width: 3, y0: 1.1, y1: 3.3 })),
-  { wall: 'south', u: LOFT.minX + 2, width: 2.8, y0: LOFT.y + 0.9, y1: LOFT.y + 2.5 },
   { wall: 'east', u: (LOFT.minZ + LOFT.maxZ) / 2, width: 2.8, y0: LOFT.y + 0.9, y1: LOFT.y + 2.5 },
 ];
+
+/**
+ * A wall's holes by the column of wall each is in, west to east (or north to south): `u0`..`u1`
+ * along the wall, and the openings stacked in it bottom to top (a door with a pane over it, say).
+ * Openings in one column span it exactly; the wall between them is solid.
+ */
+export function wallColumns(holes: readonly Opening[]): { u0: number; u1: number; stack: Opening[] }[] {
+  const cols: { u0: number; u1: number; stack: Opening[] }[] = [];
+  for (const o of [...holes].sort((a, b) => a.u - b.u || a.y0 - b.y0)) {
+    const u0 = o.u - o.width / 2;
+    const u1 = o.u + o.width / 2;
+    const last = cols[cols.length - 1];
+    if (last && Math.abs(last.u0 - u0) < 1e-6 && Math.abs(last.u1 - u1) < 1e-6) last.stack.push(o);
+    else cols.push({ u0, u1, stack: [o] });
+  }
+  return cols;
+}
 
 /**
  * The way out of the bottom floor: a door in the west wall onto a landing, with stairs down to the
@@ -359,8 +393,6 @@ export const EXIT_STAIRS = {
   run: 0.34,
 } as const;
 
-/** Glass doors out to the balcony, on the south wall. They slide apart into the wall on either side. */
-export const BALCONY_DOOR: Opening = { wall: 'south', u: -4, width: 3, y0: 0, y1: 2.5 };
 /** The smoking balcony, hanging over the garage entrance. */
 export const BALCONY = { minX: -10.5, maxX: 2.5, minZ: FLOOR.maxZ + WALL_T, maxZ: FLOOR.maxZ + WALL_T + 3.4 } as const;
 /** The ashtray on the balcony, where a smoke break starts. */

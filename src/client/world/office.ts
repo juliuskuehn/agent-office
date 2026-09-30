@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, CABINET, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, GONG, JUKEBOX, KIOSK, LADDER, LOFT, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
+import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, CABINET, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, GONG, JUKEBOX, KIOSK, LADDER, LOFT, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
 import { wallFacing, type WallId, type WallRect } from '../../shared/decor';
 import { deskPoint } from '../../shared/nav';
 import { FLOOR_PALETTES, type FloorPalette } from '../../shared/floors';
@@ -788,22 +788,24 @@ function buildWalls(group: THREE.Group, colliders: Collider[], openings: Opening
     };
     const block = (u0: number, u1: number, bottom?: number) =>
       colliders.push(alongX ? { minX: u0, maxX: u1, minZ: w.at - T / 2, maxZ: w.at + T / 2, top: 99, bottom } : { minX: w.at - T / 2, maxX: w.at + T / 2, minZ: u0, maxZ: u1, top: 99, bottom });
-    const holes = openings.filter((o) => o.wall === w.side).sort((a, b) => a.u - b.u);
+    const columns = wallColumns(openings.filter((o) => o.wall === w.side));
     for (const [a, b, top] of w.spans) {
       let u = a;
       let floorU = a;
-      for (const o of holes) {
-        const h0 = o.u - o.width / 2;
-        const h1 = o.u + o.width / 2;
+      for (const { u0: h0, u1: h1, stack } of columns) {
         if (h0 < a || h1 > b) continue;
         piece(u, h0, 0, top);
-        piece(h0, h1, 0, o.y0);
-        piece(h0, h1, o.y1, top);
+        let y = 0;
+        for (const o of stack) {
+          piece(h0, h1, y, o.y0);
+          y = o.y1;
+        }
+        piece(h0, h1, y, top);
         u = h1;
-        if (o.y0 > 0) continue;
-        // A door: walk through it, under the wall above.
+        if (stack[0].y0 > 0) continue;
+        // A door: walk through it, under whatever's over it.
         run(floorU, h0);
-        block(h0, h1, o.y1);
+        block(h0, h1, stack[0].y1);
         floorU = h1;
       }
       piece(u, b, 0, top);
