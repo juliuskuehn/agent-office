@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { DESKS, DESK_BY_ID, DESK_SIZE, WALL_HEIGHT, WING_DESKS, type DeskDef } from '../../shared/layout';
 import { signInk, type DeskLabel } from '../../shared/floorplan';
 import { mergeByMaterial, mesh, roundedBox, toon } from './toon';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
 // Big signs hung from the ceiling over the desks, naming what each one is for ("Operations", "Code
 // cleanup"), so you can tell from across the room where to look (see shared/floorplan.ts). Each
@@ -24,7 +25,7 @@ for (const d of [...DESKS, ...WING_DESKS]) {
   const p = [...DESKS, ...WING_DESKS].find((e) => e !== d && Math.abs(e.x - d.x) < 0.01 && Math.abs(Math.abs(e.z - d.z) - DESK_SIZE.depth) < 0.01 && Math.abs(Math.cos(e.rotY) + Math.cos(d.rotY)) < 0.01);
   if (p) PARTNER.set(d.id, p.id);
 }
-const FONT = (size: number) => `800 ${size}px Nunito, ui-rounded, system-ui, sans-serif`;
+const FONT = (size: number) => `${WEIGHT} ${size}px ${TYPEFACE}`;
 
 /** The text, as large as fits on one line, else on two. */
 function fit(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxH: number): { lines: string[]; size: number } {

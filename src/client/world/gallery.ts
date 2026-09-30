@@ -3,6 +3,7 @@ import { FRAMES, FRAME_BORDER, WALLS, frameRect, wallPose, wallTop, type Decorat
 import { FLOOR, LOFT } from '../../shared/layout';
 import type { Interactable } from './office';
 import { toon } from './toon';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
 // ---- Pictures -------------------------------------------------------------------------------------
 
@@ -116,7 +117,7 @@ function notice(text: string, bg: string, fg: string): THREE.CanvasTexture {
   g.fillStyle = fg;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.font = '800 44px Nunito, ui-rounded, system-ui, sans-serif';
+  g.font = `${WEIGHT} 44px ${TYPEFACE}`;
   g.fillText(text, c.width / 2, c.height / 2);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
 let gradient: THREE.DataTexture | null = null;
 
@@ -82,7 +83,7 @@ function textTexture(text: string, opts: TextOpts) {
   const size = opts.size ?? 48;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d')!;
-  const font = `800 ${size}px Nunito, ui-rounded, system-ui, sans-serif`;
+  const font = `${WEIGHT} ${size}px ${TYPEFACE}`;
   ctx.font = font;
   const w = Math.ceil(ctx.measureText(text).width) + size;
   const h = Math.ceil(size * 1.6);
@@ -141,7 +142,7 @@ export interface CardOpts {
 /** Cards are drawn at twice the pixels of other labels so their smaller text stays crisp up close. */
 const CARD_RES = 2;
 const INK = '#2b2d42';
-const FONT = 'Nunito, ui-rounded, system-ui, sans-serif';
+const FONT = TYPEFACE;
 
 /**
  * A speech-bubble card: status pill, bold title (up to 2 lines) and a smaller body (up to 3), with a
@@ -153,11 +154,11 @@ export function cardSprite(o: CardOpts): THREE.Sprite {
   const pad = 16 * R;
   const lw = 5 * R;
   const tail = 14 * R;
-  const chipFont = `800 ${19 * R}px ${FONT}`;
+  const chipFont = `${WEIGHT} ${19 * R}px ${FONT}`;
   const chipH = 30 * R;
-  const titleFont = `800 ${30 * R}px ${FONT}`;
+  const titleFont = `${WEIGHT} ${30 * R}px ${FONT}`;
   const titleLH = 36 * R;
-  const bodyFont = `700 ${23 * R}px ${FONT}`;
+  const bodyFont = `${WEIGHT} ${23 * R}px ${FONT}`;
   const bodyLH = 29 * R;
 
   const ctx = document.createElement('canvas').getContext('2d')!;

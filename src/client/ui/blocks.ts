@@ -1,4 +1,5 @@
 import { CLEAR_POINTS, GAME, WELL_COLS, WELL_ROWS, levelFor, scoreText, type CabinetFrame, type HighScore, type PlayState } from '../../shared/cabinet';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
 /**
  * BLOCKFALL, the game on the arcade cabinet (ui/cabinet.ts): falling blocks with the usual rotation
@@ -319,7 +320,7 @@ export interface ScreenView {
   t: number;
 }
 
-const FONT = "Nunito, ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+const FONT = TYPEFACE;
 const CELL = 27;
 const X0 = (W - COLS * CELL) / 2;
 const Y0 = 36;
@@ -380,14 +381,14 @@ function paintGame(g: CanvasRenderingContext2D, f: CabinetFrame, v: ScreenView) 
   if (v.player) {
     g.textAlign = 'center';
     g.fillStyle = '#ffd166';
-    g.font = `900 20px ${FONT}`;
+    g.font = `${WEIGHT} 20px ${FONT}`;
     g.fillText(`▶ ${fit(g, v.player.toUpperCase(), 190)}`, lx, 470);
   }
   const best = v.scores[0];
   if (best) {
     g.textAlign = 'center';
     g.fillStyle = DIM;
-    g.font = `800 16px ${FONT}`;
+    g.font = `${WEIGHT} 16px ${FONT}`;
     g.fillText(`HI ${scoreText(Math.max(best.score, f.score))}`, lx, 502);
   }
   label(g, 'NEXT', rx, 62);
@@ -406,7 +407,7 @@ function paintGame(g: CanvasRenderingContext2D, f: CabinetFrame, v: ScreenView) 
 /** Nobody's playing: the title, the high scores and a blinking "press E". */
 function paintAttract(g: CanvasRenderingContext2D, v: ScreenView) {
   g.textAlign = 'center';
-  g.font = `900 76px ${FONT}`;
+  g.font = `${WEIGHT} 76px ${FONT}`;
   // Each letter in a piece's color, glowing.
   const letters = [...GAME];
   const widths = letters.map((ch) => g.measureText(ch).width);
@@ -423,12 +424,12 @@ function paintAttract(g: CanvasRenderingContext2D, v: ScreenView) {
   if (v.scores.length) table(g, v.scores, W / 2 - 250, 500, 182, 35, 24, v.mine);
   else {
     g.fillStyle = DIM;
-    g.font = `800 22px ${FONT}`;
+    g.font = `${WEIGHT} 22px ${FONT}`;
     g.fillText('No scores yet. Be the first!', W / 2, 300);
   }
   if (Math.floor(v.t * 1.6) % 2 === 0) {
     g.fillStyle = '#ffd166';
-    g.font = `900 30px ${FONT}`;
+    g.font = `${WEIGHT} 30px ${FONT}`;
     g.fillText(v.prompt ?? 'PRESS E TO PLAY', W / 2, 562);
   }
 }
@@ -443,7 +444,7 @@ function table(g: CanvasRenderingContext2D, scores: readonly HighScore[], x: num
       g.roundRect(x - 8, cy - step / 2 + 2, width + 16, step - 4, 8);
       g.fill();
     }
-    g.font = `900 ${size}px ${FONT}`;
+    g.font = `${WEIGHT} ${size}px ${FONT}`;
     const score = scoreText(s.score);
     const place = size * 1.6;
     g.textAlign = 'left';
@@ -504,23 +505,23 @@ function banner(g: CanvasRenderingContext2D, title: string, sub: string, color: 
   g.fill();
   g.textAlign = 'center';
   g.fillStyle = '#ffffff';
-  g.font = `900 44px ${FONT}`;
+  g.font = `${WEIGHT} 44px ${FONT}`;
   g.fillText(title, W / 2, H / 2 - 22);
-  g.font = `800 18px ${FONT}`;
+  g.font = `${WEIGHT} 18px ${FONT}`;
   g.fillText(fit(g, sub, COLS * CELL + 40), W / 2, H / 2 + 22);
 }
 
 function label(g: CanvasRenderingContext2D, text: string, x: number, y: number) {
   g.textAlign = 'center';
   g.fillStyle = DIM;
-  g.font = `900 16px ${FONT}`;
+  g.font = `${WEIGHT} 16px ${FONT}`;
   g.fillText(text, x, y);
 }
 
 function value(g: CanvasRenderingContext2D, text: string, x: number, y: number, size: number) {
   g.textAlign = 'center';
   g.fillStyle = TEXT;
-  g.font = `900 ${size}px ${FONT}`;
+  g.font = `${WEIGHT} ${size}px ${FONT}`;
   g.fillText(fit(g, text, 200), x, y);
 }
 

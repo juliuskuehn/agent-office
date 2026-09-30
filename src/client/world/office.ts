@@ -19,6 +19,7 @@ import { buildStack, type Stack } from './stack';
 import { buildTower, wingWindows } from './tower';
 import { buildKitchen } from './kitchen';
 import { buildDeskSigns, type DeskSigns } from './desksigns';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
 export interface Collider {
   minX: number;
@@ -905,9 +906,9 @@ function paintGrowSign(c: HTMLCanvasElement, level: number) {
   g.fillStyle = '#2b2d42';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.font = '800 88px Nunito, ui-rounded, system-ui, sans-serif';
+  g.font = `${WEIGHT} 88px ${TYPEFACE}`;
   g.fillText(full ? '🏢 As big as it gets' : '🚧 Room to grow', w / 2, h * 0.4);
-  g.font = '700 46px Nunito, ui-rounded, system-ui, sans-serif';
+  g.font = `${WEIGHT} 46px ${TYPEFACE}`;
   g.fillText(full ? 'The back office is built all the way out' : level ? 'Press E to go back another row: 2 more desks' : 'Press E to knock through: 2 more desks', w / 2, h * 0.68);
 }
 
@@ -1259,7 +1260,7 @@ function buildKiosk(def: DeskDef): DeskView {
   group.add(mesh(roundedBox(width - 0.16, height - 0.1, depth - 0.12, 0.06), color, 0, (height - 0.1) / 2 + 0.04, 0));
   group.add(mesh(roundedBox(width - 0.02, 0.06, depth + 0.02, 0.05), toon(PALETTE.ink), 0, 0.03, 0));
   group.add(mesh(roundedBox(width, 0.06, depth, 0.05), toon(PALETTE.desk), 0, height - 0.03, 0));
-  const sign = textPlane(KIOSK_SIGN[kind], { bg: '#fffaf3', size: 56 });
+  const sign = textPlane(KIOSK_SIGN[kind], { size: 56 });
   sign.scale.multiplyScalar(0.62);
   sign.position.set(0, height * 0.55, -(depth - 0.12) / 2 - 0.012);
   sign.rotation.y = Math.PI;
@@ -1483,9 +1484,10 @@ export function buildOffice(): Office {
     bg.rotation.y = b.rotY;
     group.add(bg);
     boardMeshes[key] = face;
-    const label = textPlane(b.label, { bg: '#fffaf3', size: 64 });
-    label.scale.multiplyScalar(1.3);
-    label.position.set(b.x + nx * 0.04, b.y + b.height / 2 + 0.5, b.z + nz * 0.04);
+    // Its name, small, just over it on the wall: plain text, no pill round it.
+    const label = textPlane(b.label, { size: 64 });
+    label.scale.multiplyScalar(0.5);
+    label.position.set(b.x + nx * 0.04, b.y + b.height / 2 + 0.2, b.z + nz * 0.04);
     label.rotation.y = b.rotY;
     group.add(label);
     const it: Interactable = { kind: key, x: b.x + nx * 1.6, z: b.z + nz * 1.6, radius: 2.4 };

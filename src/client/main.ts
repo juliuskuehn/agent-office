@@ -102,6 +102,7 @@ import { loadingScreen } from './ui/loading';
 import { SlowFrames } from './framerate';
 import { offerLite, touchOnly } from './ui/litesuggest';
 import { openDeskLabel, openExpand } from './ui/floorplan';
+import { TYPEFACE, WEIGHT } from './typeface';
 
 // The loading screen stays up until there's an office to see (see boot and whoami at the end).
 const loading = loadingScreen(onModelsProgress);
@@ -316,9 +317,9 @@ const tvIdle = (() => {
   g.fillRect(0, 0, 1280, 720);
   g.fillStyle = '#fff';
   g.textAlign = 'center';
-  g.font = '900 88px Nunito, ui-rounded, system-ui, sans-serif';
+  g.font = `${WEIGHT} 88px ${TYPEFACE}`;
   g.fillText('📺 Office TV', 640, 330);
-  g.font = '700 44px Nunito, ui-rounded, system-ui, sans-serif';
+  g.font = `${WEIGHT} 44px ${TYPEFACE}`;
   g.fillText('Click “Share screen” to put something up here', 640, 420);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { JUKEBOX } from '../../shared/layout';
 import { mesh, roundedBox, textSprite, toon, toonUnique } from './toon';
 import type { Collider, Interactable } from './office';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
 // The lounge jukebox: a cherry-red cabinet with a rounded top, a neon tube round its face that
 // glows to the beat while it plays, a little display saying what's on, and notes floating up.
@@ -88,12 +89,12 @@ export function buildJukebox(): JukeboxView {
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillStyle = on ? '#ffd166' : '#8d99ae';
-    g.font = '900 44px Nunito, ui-rounded, system-ui, sans-serif';
+    g.font = `${WEIGHT} 44px ${TYPEFACE}`;
     g.fillText(on ? '♪ NOW PLAYING ♪' : 'JUKEBOX', 256, 70);
     g.fillStyle = on ? '#ffffff' : '#8d99ae';
     let size = 58;
     const text = on ? title : 'press E to play';
-    do g.font = `800 ${size--}px Nunito, ui-rounded, system-ui, sans-serif`;
+    do g.font = `${WEIGHT} ${size--}px ${TYPEFACE}`;
     while (g.measureText(text).width > 470 && size > 26);
     g.fillText(text, 256, 160);
     tex.needsUpdate = true;

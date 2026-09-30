@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import type { MachineState } from '../../shared/protocol';
 import { officeFull } from '../../shared/machine';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
-const FONT = 'Nunito, ui-rounded, system-ui, sans-serif';
+const FONT = TYPEFACE;
 const INK = '#1b1d2e';
 const MUTED = '#9aa0b8';
 
@@ -50,11 +51,11 @@ export class MachineTexture {
     // Header: what this is, and whether there's room for another worker.
     g.textAlign = 'left';
     g.fillStyle = '#ffffff';
-    g.font = `900 40px ${FONT}`;
+    g.font = `${WEIGHT} 40px ${FONT}`;
     g.fillText('🖥️ This machine', 30, 62);
     const full = officeFull(s);
     const status = !s.memTotal ? ['…', MUTED] : s.pressure ? ['⚠️ Under pressure', '#ef476f'] : full ? ['🚫 Office full', '#ffd166'] : ['✅ Room to hire', '#06d6a0'];
-    g.font = `800 30px ${FONT}`;
+    g.font = `${WEIGHT} 30px ${FONT}`;
     const tw = g.measureText(status[0]).width;
     g.fillStyle = status[1];
     roundRect(g, W - 30 - tw - 32, 24, tw + 32, 50, 25);
@@ -70,7 +71,7 @@ export class MachineTexture {
     // Footer: the workers, one pip each, against the limit.
     const y = 440;
     g.textAlign = 'left';
-    g.font = `800 32px ${FONT}`;
+    g.font = `${WEIGHT} 32px ${FONT}`;
     g.fillStyle = '#ffffff';
     const label = s.limit === undefined ? `👷 ${s.workers} worker${s.workers === 1 ? '' : 's'} · no limit` : `👷 ${s.workers} of ${s.limit} workers`;
     g.fillText(label, 30, y + 12);
@@ -96,13 +97,13 @@ export class MachineTexture {
     g.fill();
     g.textAlign = 'left';
     g.fillStyle = MUTED;
-    g.font = `800 28px ${FONT}`;
+    g.font = `${WEIGHT} 28px ${FONT}`;
     g.fillText(name, x + 20, y + 42);
     g.fillStyle = color;
-    g.font = `900 84px ${FONT}`;
+    g.font = `${WEIGHT} 84px ${FONT}`;
     g.fillText(`${pct}%`, x + 20, y + 124);
     g.fillStyle = MUTED;
-    g.font = `700 24px ${FONT}`;
+    g.font = `${WEIGHT} 24px ${FONT}`;
     g.fillText(sub, x + 20, y + 160);
     // The graph: 0-100%, the newest reading on the right.
     const gx = x + 20;

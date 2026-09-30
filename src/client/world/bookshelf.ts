@@ -105,7 +105,7 @@ export function buildBookshelf(): BookshelfModel {
   group.add(mergeByMaterial(parts));
 
   // A sign along the crown.
-  const sign = textPlane('📚 Docs', { size: 40, bg: '#fffaf3' });
+  const sign = textPlane('📚 Docs', { size: 40 });
   sign.position.set(0, H + 0.3, 0.02);
   group.add(sign);
 

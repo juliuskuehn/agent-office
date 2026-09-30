@@ -4,6 +4,7 @@ import { FLOOR } from '../../shared/layout';
 import type { Collider, Interactable } from './office';
 import { bulb, type NightParts } from './outside';
 import { disposeSprite, mergeByMaterial, mesh, textPlane, textSprite, toon } from './toon';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
 // The rooftop bar's games corner (see shared/bargames.ts): an axe-throwing booth against the north
 // edge with its target on the back wall, and a dart board in a cabinet on the outside of the booth,
@@ -94,7 +95,7 @@ function dartboardTexture(): THREE.CanvasTexture {
       g.stroke();
     }
     g.fillStyle = '#f5f5f5';
-    g.font = '900 54px Nunito, ui-rounded, system-ui, sans-serif';
+    g.font = `${WEIGHT} 54px ${TYPEFACE}`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     const numbersAt = ((DART.doubleOut + DART.board) / 2) * px;
@@ -142,7 +143,7 @@ function axeTargetTexture(): THREE.CanvasTexture {
       g.lineWidth = 5;
       g.stroke();
     });
-    g.font = '900 44px Nunito, ui-rounded, system-ui, sans-serif';
+    g.font = `${WEIGHT} 44px ${TYPEFACE}`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     rings.forEach((ring, i) => {
@@ -394,7 +395,7 @@ export function buildBarGames(night: NightParts): BarGamesView {
     const H = c.height;
     g.fillStyle = '#26332d';
     g.fillRect(0, 0, W, H);
-    const font = (px: number) => `800 ${px}px "Chalkboard SE", "Comic Sans MS", Nunito, ui-rounded, sans-serif`;
+    const font = (px: number) => `${WEIGHT} ${px}px ${TYPEFACE}`;
     g.textBaseline = 'middle';
     g.textAlign = 'center';
     g.fillStyle = CHALK;

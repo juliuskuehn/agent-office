@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CABINET, FLOOR } from '../../shared/layout';
 import { mesh, roundedBox, toon } from './toon';
 import type { Collider, Interactable } from './office';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
 // The arcade cabinet in the lounge: an upright in blue side panels, a lit marquee on top, the screen
 // leaning back under it (ui/cabinet.ts paints the game on it), a joystick and buttons, and a coin door.
@@ -153,7 +154,7 @@ function paintMarquee(c: HTMLCanvasElement) {
   g.fillRect(0, 0, c.width, c.height);
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.font = '900 84px Nunito, ui-rounded, system-ui, sans-serif';
+  g.font = `${WEIGHT} 84px ${TYPEFACE}`;
   const letters = [...'BLOCKFALL'];
   const widths = letters.map((ch) => g.measureText(ch).width);
   let x = c.width / 2 - widths.reduce((a, b) => a + b, 0) / 2;

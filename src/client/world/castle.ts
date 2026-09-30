@@ -12,6 +12,7 @@ import { buildGong, type Gong } from './gong';
 import { vacancyMarker, type Collider, type DeskView, type Interactable } from './office';
 import { mergeByMaterial, mesh, roundedBox, textPlane, toon, toonUnique } from './toon';
 import type { World } from './world';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
 /*
  * The castle's style of map (see shared/maps/castle.ts for the castle itself): a long stone hall
@@ -229,10 +230,10 @@ function paintBanner(g: CanvasRenderingContext2D, w: number, h: number, color: s
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     let size = w * 0.13;
-    g.font = `900 ${size}px Georgia, 'Times New Roman', serif`;
+    g.font = `${WEIGHT} ${size}px ${TYPEFACE}`;
     while (g.measureText(motto).width > w * 0.8 && size > 10) {
       size *= 0.9;
-      g.font = `900 ${size}px Georgia, 'Times New Roman', serif`;
+      g.font = `${WEIGHT} ${size}px ${TYPEFACE}`;
     }
     g.fillText(motto, cx, h * 0.62);
   }

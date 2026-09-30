@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { MEETING_PATTERNS, meetingStage, meetingSummary } from '../../shared/meetings';
 import { fmtCost, fmtTokens, type Meeting, type MeetingState } from '../../shared/protocol';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
-const FONT = 'Nunito, ui-rounded, system-ui, sans-serif';
+const FONT = TYPEFACE;
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, monospace';
 const INK = '#2b2d42';
 
@@ -69,9 +70,9 @@ export class MeetingBoardTexture {
     if (!m) {
       g.fillStyle = INK;
       g.textAlign = 'center';
-      g.font = `900 64px ${FONT}`;
+      g.font = `${WEIGHT} 64px ${FONT}`;
       g.fillText('🤝 The meeting room is free', W / 2, H / 2 - 10);
-      g.font = `700 36px ${FONT}`;
+      g.font = `${WEIGHT} 36px ${FONT}`;
       g.fillStyle = '#5c5f73';
       g.fillText('Press E at the table to call a meeting: whatever it writes shows up here.', W / 2, H / 2 + 50);
       g.textAlign = 'left';
@@ -85,7 +86,7 @@ export class MeetingBoardTexture {
     g.fillStyle = INK;
     g.font = `800 36px ${MONO}`;
     g.fillText(`📄 ${m.output}`, 24, 48);
-    g.font = `800 34px ${FONT}`;
+    g.font = `${WEIGHT} 34px ${FONT}`;
     g.textAlign = 'right';
     g.fillText(`${p.icon} ${p.label} · ${m.status === 'running' ? meetingStage(m) : m.status === 'done' ? '✅ done' : '⛔ stopped'}`, W - 24, 48);
     g.textAlign = 'left';
@@ -93,7 +94,7 @@ export class MeetingBoardTexture {
     const text = (m.preview ?? '').replace(/\r/g, '');
     if (!text.trim()) {
       g.fillStyle = '#8d99ae';
-      g.font = `800 44px ${FONT}`;
+      g.font = `${WEIGHT} 44px ${FONT}`;
       g.textAlign = 'center';
       g.fillText(m.status === 'running' ? `Nothing written yet: ${speaking(m).join(', ') || 'the table'} ${speaking(m).length === 1 ? 'is' : 'are'} on it` : m.reason ? `⛔ ${m.reason}` : 'Nothing was written', W / 2, H / 2 + 30);
       g.textAlign = 'left';
@@ -109,7 +110,7 @@ export class MeetingBoardTexture {
       const heading = /^(#{1,6})\s+(.*)$/.exec(raw);
       const line = heading ? heading[2] : raw.replace(/\*\*(.+?)\*\*/g, '$1').replace(/`([^`]*)`/g, '$1');
       const size = heading ? (heading[1].length === 1 ? 44 : 36) : 28;
-      g.font = heading ? `900 ${size}px ${FONT}` : `600 ${size}px ${FONT}`;
+      g.font = heading ? `${WEIGHT} ${size}px ${FONT}` : `${WEIGHT} ${size}px ${FONT}`;
       g.fillStyle = heading ? INK : '#3d405b';
       if (!line.trim()) {
         y += size * 0.5;
@@ -164,22 +165,22 @@ export class MeetingSignTexture {
     g.fillStyle = strip;
     g.fillRect(0, 0, W, 78);
     g.fillStyle = INK;
-    g.font = `900 38px ${FONT}`;
+    g.font = `${WEIGHT} 38px ${FONT}`;
     g.fillText(label, pad, 53);
     if (!m) {
-      let y = lines('🤝 Meeting room', `900 50px ${FONT}`, '#fffaf3', 160, 2, 58);
-      lines('Press E at the table to call a meeting: a debate, lead & team, map-reduce, red / blue or a review panel.', `700 32px ${FONT}`, '#e9ecef', y + 30, 8, 42);
+      let y = lines('🤝 Meeting room', `${WEIGHT} 50px ${FONT}`, '#fffaf3', 160, 2, 58);
+      lines('Press E at the table to call a meeting: a debate, lead & team, map-reduce, red / blue or a review panel.', `${WEIGHT} 32px ${FONT}`, '#e9ecef', y + 30, 8, 42);
       this.texture.needsUpdate = true;
       return;
     }
     const p = MEETING_PATTERNS[m.pattern];
-    let y = lines(`${p.icon} ${p.label}`, `800 34px ${FONT}`, '#ffd166', 130, 1, 40);
-    y = lines(m.title, `900 44px ${FONT}`, '#fffaf3', y + 16, 3, 50);
+    let y = lines(`${p.icon} ${p.label}`, `${WEIGHT} 34px ${FONT}`, '#ffd166', 130, 1, 40);
+    y = lines(m.title, `${WEIGHT} 44px ${FONT}`, '#fffaf3', y + 16, 3, 50);
     y += 18;
     if (m.status === 'running') {
-      y = lines(meetingStage(m), `800 32px ${FONT}`, '#e9ecef', y, 3, 40);
+      y = lines(meetingStage(m), `${WEIGHT} 32px ${FONT}`, '#e9ecef', y, 3, 40);
       const who = speaking(m);
-      if (who.length) lines(`💬 ${who.join(', ')}`, `700 30px ${FONT}`, '#bde0fe', y + 8, 3, 38);
+      if (who.length) lines(`💬 ${who.join(', ')}`, `${WEIGHT} 30px ${FONT}`, '#bde0fe', y + 8, 3, 38);
       // The budget, as a bar that fills up, and what's been spent.
       const f = Math.min(1, m.tokens / Math.max(1, m.budget));
       const barY = H - 118;
@@ -188,14 +189,14 @@ export class MeetingSignTexture {
       g.fillStyle = f > 0.9 ? '#ef476f' : f > 0.7 ? '#ffd166' : '#06d6a0';
       g.fillRect(pad, barY, (W - 2 * pad) * f, 20);
       g.fillStyle = '#fffaf3';
-      g.font = `800 30px ${FONT}`;
+      g.font = `${WEIGHT} 30px ${FONT}`;
       g.fillText(`${fmtTokens(m.tokens)} of ${fmtTokens(m.budget)} tokens`, pad, H - 58);
-      g.font = `700 28px ${FONT}`;
+      g.font = `${WEIGHT} 28px ${FONT}`;
       g.fillStyle = '#e9ecef';
       if (m.cost > 0) g.fillText(`${fmtCost(m.cost)}${m.costKnown ? '' : '+'} so far`, pad, H - 22);
     } else {
       // The summary line after the pattern, which is up top already.
-      lines(meetingSummary(m).split(' · ').slice(1).join(' · '), `700 30px ${FONT}`, '#e9ecef', y, Math.floor((H - y) / 38), 38);
+      lines(meetingSummary(m).split(' · ').slice(1).join(' · '), `${WEIGHT} 30px ${FONT}`, '#e9ecef', y, Math.floor((H - y) / 38), 38);
     }
     this.texture.needsUpdate = true;
   }
