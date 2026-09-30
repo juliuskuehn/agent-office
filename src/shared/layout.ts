@@ -276,12 +276,13 @@ export const BOARDS = {
  */
 export const TV = { x: FLOOR.maxX - 0.1, y: BOARD_ROW_Y, z: eastBay(4), ...BOARD_SIZE } as const;
 /**
- * The monitor on the north wall, just east of the elevator, facing into the room: how busy the
- * office's machine is, and how many workers it runs of the most it takes.
+ * The monitor of how busy the office's machine is, and how many workers it runs of the most it takes:
+ * on the east wall's glass in the pane south of the TV, at the end of the boards' row and as high as
+ * they are, facing into the room. 23:13, what its screen is drawn for.
  */
-export const MACHINE_MONITOR = { x: 11.6, y: 2.2, z: FLOOR.minZ, width: 2.3, height: 1.3 } as const;
-/** The lounge jukebox, against the east wall south of the couch, facing into the room. `y` is its speaker. */
-export const JUKEBOX = { x: FLOOR.maxX - 0.42, y: 0.75, z: 5.4, width: 1.3, depth: 0.72, height: 1.85 } as const;
+export const MACHINE_MONITOR = { x: FLOOR.maxX, y: BOARD_ROW_Y, z: eastBay(5), width: (BOARD_SIZE.height * 23) / 13, height: BOARD_SIZE.height } as const;
+/** The lounge jukebox, a giant AirPod on a round plinth by the east wall south of the couch, facing into the room. `width` and `depth` are the plinth's, `y` is its speaker. */
+export const JUKEBOX = { x: FLOOR.maxX - 0.75, y: 2, z: 5.6, width: 1.1, depth: 1.1, height: 2.55 } as const;
 /** The arcade cabinet, against the east wall between the jukebox and the loft, facing into the room. `width` runs along the wall. */
 export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, height: 1.9 } as const;
 
@@ -375,6 +376,8 @@ export interface Opening {
   width: number;
   y0: number;
   y1: number;
+  /** Where the wall's middle is (x for an east or west wall, z for a north or south one), when it isn't the building's own outside wall on that side: the back office's. */
+  plane?: number;
 }
 
 /** Glass doors out to the balcony, on the south wall. They slide apart into the wall on either side. */
@@ -638,7 +641,7 @@ export const POLE = { hole: 0.68, rail: 0.9, grip: 0.4, radius: 0.055 } as const
 export const GLASS_FRONT = { bay: 3, foot: 0.12, head: WALL_HEIGHT - 0.3, margin: 0.15, minPane: 0.6 } as const;
 
 /** Panes along `wall` from `u0` to `u1`, round the `solid` stretches, each as near `GLASS_FRONT.bay` wide as fit evenly. */
-function glassFront(wall: Side, u0: number, u1: number, solid: readonly (readonly [number, number])[]): Opening[] {
+export function glassFront(wall: Side, u0: number, u1: number, solid: readonly (readonly [number, number])[]): Opening[] {
   const panes: Opening[] = [];
   const glaze = (a: number, b: number) => {
     if (b - a < GLASS_FRONT.minPane) return;

@@ -186,16 +186,16 @@ function glassPane(w: number, h: number): THREE.Group {
 }
 
 /** The middle of an outside wall at `u` along it, and the turn that makes local +z point outdoors. */
-function onWall(side: Side, u: number): { x: number; z: number; rotY: number } {
+function onWall(side: Side, u: number, plane?: number): { x: number; z: number; rotY: number } {
   switch (side) {
     case 'north':
-      return { x: u, z: FLOOR.minZ - WALL_T / 2, rotY: Math.PI };
+      return { x: u, z: plane ?? FLOOR.minZ - WALL_T / 2, rotY: Math.PI };
     case 'south':
-      return { x: u, z: FLOOR.maxZ + WALL_T / 2, rotY: 0 };
+      return { x: u, z: plane ?? FLOOR.maxZ + WALL_T / 2, rotY: 0 };
     case 'west':
-      return { x: FLOOR.minX - WALL_T / 2, z: u, rotY: -Math.PI / 2 };
+      return { x: plane ?? FLOOR.minX - WALL_T / 2, z: u, rotY: -Math.PI / 2 };
     case 'east':
-      return { x: FLOOR.maxX + WALL_T / 2, z: u, rotY: Math.PI / 2 };
+      return { x: plane ?? FLOOR.maxX + WALL_T / 2, z: u, rotY: Math.PI / 2 };
   }
 }
 
@@ -380,7 +380,7 @@ function windowIn(o: Opening): THREE.Group {
   g.add(pane);
   g.add(mesh(box(w + 0.2, 0.06, 0.2), frame, 0, o.y0 - 0.03, -(WALL_T / 2 + 0.08)));
   g.add(mesh(box(w + 0.2, 0.06, 0.16), frame, 0, o.y0 - 0.03, WALL_T / 2 + 0.06));
-  const at = onWall(o.wall, o.u);
+  const at = onWall(o.wall, o.u, o.plane);
   g.position.set(at.x, 0, at.z);
   g.rotation.y = at.rotY;
   return g;
@@ -399,7 +399,7 @@ function wetPane(o: Opening, mat: THREE.Material): THREE.Group {
   pane.position.set(0, (o.y0 + o.y1) / 2, 0.05);
   const g = new THREE.Group();
   g.add(pane);
-  const at = onWall(o.wall, o.u);
+  const at = onWall(o.wall, o.u, o.plane);
   g.position.set(at.x, 0, at.z);
   g.rotation.y = at.rotY;
   return g;
@@ -419,7 +419,7 @@ function doorFrame(o: Opening): THREE.Group {
 
 /** Stands a wall-built group (along x, outdoors toward +z) in its wall. */
 function mount(g: THREE.Group, o: Opening): THREE.Group {
-  const at = onWall(o.wall, o.u);
+  const at = onWall(o.wall, o.u, o.plane);
   g.position.set(at.x, 0, at.z);
   g.rotation.y = at.rotY;
   return g;
@@ -466,7 +466,7 @@ function exitDoor(night: NightParts): { group: THREE.Group; door: Door } {
   g.add(mesh(box(0.32, 0.1, 0.18), toon(PALETTE.ink), 0, o.y1 + 0.42, WALL_T / 2 + 0.09));
   g.add(mesh(new THREE.SphereGeometry(0.08, 10, 8), toon('#fff7d6', { emissive: '#ffe08a' }), 0, o.y1 + 0.33, WALL_T / 2 + 0.12, false));
 
-  const at = onWall(o.wall, o.u);
+  const at = onWall(o.wall, o.u, o.plane);
   // Over the landing, where it lights the way down at night.
   const lampAt = new THREE.Vector3(at.x - WALL_T / 2 - 0.14, o.y1 + 0.33, at.z);
   night.halos.push({ at: lampAt, size: 0.9, color: '#ffe08a', ground: true });
@@ -504,7 +504,7 @@ function balconyDoor(): { group: THREE.Group; door: Door } {
     g.add(p);
     panels.push([p, x0]);
   }
-  const at = onWall(o.wall, o.u);
+  const at = onWall(o.wall, o.u, o.plane);
   const door: Door = {
     x: at.x,
     y: 0,
@@ -821,7 +821,7 @@ function buildWalls(group: THREE.Group, colliders: Collider[], openings: Opening
 /** Wall where the exit door is, for the floors above the bottom one: painted like the rest of the wall, inside and out, with its baseboard. */
 function exitPlug(looks: Looks): { group: THREE.Group; collider: Collider } {
   const o = EXIT_DOOR;
-  const at = onWall(o.wall, o.u);
+  const at = onWall(o.wall, o.u, o.plane);
   const group = new THREE.Group();
   // A box's faces go +x, -x, +y, -y, +z, -z; on the west wall, -x is outdoors.
   const mats = Array.from({ length: 6 }, (_, i) => (i === 1 ? toon(PALETTE.exterior) : looks.wall));
@@ -1028,10 +1028,11 @@ function buildWing(group: THREE.Group, colliders: Collider[], interactables: Int
       const back = wingMinZ(level);
       if (level > 0) {
         const shell = new THREE.Group();
-        wallRun(shell, mine, 'z', WING.minX - T / 2, back, FLOOR.minZ - T, -1, [], looks, [false, false]);
         const windows = wingWindows(level);
-        wallRun(shell, mine, 'z', FLOOR.maxX + T / 2, back, FLOOR.minZ, 1, windows, looks, [false, false]);
-        wallRun(shell, mine, 'x', back - T / 2, WING.minX - T, FLOOR.maxX + T, -1, [], looks, [true, true]);
+        const on = (side: Side) => windows.filter((o) => o.wall === side);
+        wallRun(shell, mine, 'z', WING.minX - T / 2, back, FLOOR.minZ - T, -1, on('west'), looks, [false, false]);
+        wallRun(shell, mine, 'z', FLOOR.maxX + T / 2, back, FLOOR.minZ, 1, on('east'), looks, [false, false]);
+        wallRun(shell, mine, 'x', back - T / 2, WING.minX - T, FLOOR.maxX + T, -1, on('north'), looks, [true, true]);
         for (const o of windows) {
           shell.add(windowIn(o));
           shell.add(wetPane(o, night.wetGlass));
@@ -1183,6 +1184,56 @@ export function buildRoundTable(at: { x: number; z: number }): THREE.Group {
   g.add(mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.04, 32), steel, 0, 0.02, 0));
   g.position.set(at.x, 0, at.z);
   return g;
+}
+
+/**
+ * A curtain `width` wide and `height` tall, in two halves on a rod over it: pleated all the way down,
+ * the folds deeper toward the hem, so it falls in light and dark stripes. Built across x, facing +z.
+ * `show(k)` draws it: 0 shut, 1 gathered at either side, its folds bunched up.
+ */
+export function buildCurtain(width: number, height: number, color = '#8c2130'): { group: THREE.Group; show(k: number): void } {
+  const group = new THREE.Group();
+  const cloth = toonUnique(color);
+  cloth.side = THREE.DoubleSide;
+  // Shade in the folds' hollows too, so they show whatever the light.
+  cloth.vertexColors = true;
+  const half = width / 2;
+  const pleat = 0.3;
+  const halves = [-1, 1].map((side) => {
+    const geo = new THREE.PlaneGeometry(half, height, Math.round(half / pleat) * 10, 16).translate(half / 2, height / 2, 0);
+    const pos = geo.attributes.position as THREE.BufferAttribute;
+    const shade: number[] = [];
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const down = 1 - pos.getY(i) / height;
+      const wave = Math.sin((x / pleat) * Math.PI * 2);
+      pos.setZ(i, (0.06 + 0.06 * down) * wave);
+      const lit = 0.62 + 0.38 * (0.5 + 0.5 * wave);
+      shade.push(lit, lit, lit);
+    }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(shade, 3));
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, cloth);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    // Each half hangs from its outer end: the west half grows east, the east half (mirrored) west.
+    m.position.x = side * half;
+    m.scale.x = -side;
+    group.add(m);
+    return m;
+  });
+  // The rod, with a knob at each end.
+  const metal = toon('#3d405b');
+  const rod = mesh(new THREE.CylinderGeometry(0.025, 0.025, width + 0.2, 12), metal, 0, height + 0.06, 0, false);
+  rod.rotation.z = Math.PI / 2;
+  group.add(rod);
+  for (const sx of [-1, 1]) group.add(mesh(new THREE.SphereGeometry(0.05, 12, 8), metal, sx * (half + 0.1), height + 0.06, 0, false));
+  const show = (k: number) => {
+    const e = k * k * (3 - 2 * k);
+    halves.forEach((m, i) => (m.scale.x = (i === 0 ? 1 : -1) * (1 - 0.82 * e)));
+  };
+  show(0);
+  return { group, show };
 }
 
 /**
@@ -1425,6 +1476,13 @@ export function buildOffice(): Office {
   const exit = exitDoor(night);
   ground.add(exit.group);
   doors.push(exit.door);
+  // The curtain across the way into the back office, where the board agents stand: it parts for
+  // whoever comes up to it, like a door.
+  const curtain = buildCurtain(FLOOR.maxX - WING.minX, WALL_HEIGHT - 0.3);
+  const curtainX = (WING.minX + FLOOR.maxX) / 2;
+  curtain.group.position.set(curtainX, 0, FLOOR.minZ - WALL_T / 2);
+  group.add(curtain.group);
+  doors.push({ x: curtainX, y: 0, z: FLOOR.minZ, open: 0, show: curtain.show });
   const stairs = new THREE.Group();
   buildExitStairs(stairs, groundColliders);
   buildBalconyPosts(stairs, groundColliders);
@@ -1568,17 +1626,19 @@ export function buildOffice(): Office {
   tvGroup.userData.interact = tv;
   fixture('east', TV.z, TV.y, TV.width + 2 * BOARD_FRAME, TV.height + 2 * BOARD_FRAME);
 
-  // The machine monitor on the north wall past the elevator, facing into the room.
+  // The machine monitor on the east wall's glass south of the TV, facing into the room: as thin a
+  // bezel as the TV's, so the row is all one height.
   const monitor = new THREE.Group();
-  const bezel = mesh(roundedBox(MACHINE_MONITOR.width + 0.16, 0.1, MACHINE_MONITOR.height + 0.16, 0.06), toon(PALETTE.ink), 0, 0, 0);
+  const bezel = mesh(roundedBox(MACHINE_MONITOR.width + 2 * BOARD_FRAME, 0.06, MACHINE_MONITOR.height + 2 * BOARD_FRAME, 0.02), toon(PALETTE.ink), 0, 0, 0);
   bezel.rotation.x = Math.PI / 2;
   monitor.add(bezel);
   const machineScreen = new THREE.Mesh(new THREE.PlaneGeometry(MACHINE_MONITOR.width, MACHINE_MONITOR.height), new THREE.MeshBasicMaterial({ color: '#ffffff' }));
-  machineScreen.position.z = 0.06;
+  machineScreen.position.z = 0.035;
   monitor.add(machineScreen);
-  monitor.position.set(MACHINE_MONITOR.x, MACHINE_MONITOR.y, MACHINE_MONITOR.z + 0.07);
+  monitor.position.set(MACHINE_MONITOR.x - 0.05, MACHINE_MONITOR.y, MACHINE_MONITOR.z);
+  monitor.rotation.y = -Math.PI / 2;
   group.add(monitor);
-  fixture('north', MACHINE_MONITOR.x, MACHINE_MONITOR.y, MACHINE_MONITOR.width + 0.2, MACHINE_MONITOR.height + 0.2);
+  fixture('east', MACHINE_MONITOR.z, MACHINE_MONITOR.y, MACHINE_MONITOR.width + 2 * BOARD_FRAME, MACHINE_MONITOR.height + 2 * BOARD_FRAME);
 
   // The couch, its back to the room, turned from the model's +z to face out through the east wall's glass (+x).
   const { x: lx, z: lz } = LOUNGE;
