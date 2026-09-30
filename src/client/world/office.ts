@@ -19,6 +19,8 @@ import { buildTower, wingWindows } from './tower';
 import { buildKitchen } from './kitchen';
 import gunStoreUrl from '../models/curtain-gun-store.jpg?url';
 import treeUrl from '../models/curtain-tree.jpg?url';
+import splashUrl from '../models/curtain-splash.jpg?url';
+import meadowUrl from '../models/curtain-meadow.jpg?url';
 import { IMAC_SCALE, idleDisplay } from './laptop';
 import { IMAC_COLORS, imac, iphone, macMini } from './macs';
 import { buildDeskSigns, type DeskSigns } from './desksigns';
@@ -221,10 +223,10 @@ const RUG_PINK = '#ffc6ff';
 const OFFICE_FLOOR = { floor: RUG_PINK };
 /** The rug the round table stands on, its chairs and all: a black starburst with a grey edge (`star`), `reach` to its spikes' tips; `color` is the back office's. */
 const DESK_RUG = { color: '#d62828', radius: 4.4, star: { fill: '#161616', edge: '#8d9199' }, reach: 6.6 } as const;
-/** The east wall's curtains' greys, north to south (before the four boards, the TV, the machine's monitor and the window past it), and the pictures printed on them, taking turns. */
+/** The east wall's curtains' greys, north to south (before the four boards, the TV, the machine's monitor and the window past it), which show till their pictures load; and the pictures printed all over them, taking turns. */
 const EAST_CURTAINS = ['#5f6368', '#9ea3a9', '#74797f', '#c3c6ca', '#686c72', '#adb1b6', '#83888e'] as const;
-const CURTAIN_PRINTS = [gunStoreUrl, treeUrl] as const;
-/** The grey of the curtain before the board agents' room (the tree's printed on it too). */
+const CURTAIN_PRINTS = [gunStoreUrl, treeUrl, splashUrl, meadowUrl] as const;
+/** The grey of the curtain before the board agents' room (the meadow's printed on it). */
 const AGENTS_CURTAIN = '#7b8086';
 /** The walls, their trim and every window's and door's frame, on every floor whatever its palette: one light grey. */
 const OFFICE_WALL = '#e8e8e8';
@@ -1267,13 +1269,14 @@ export function starRug(rx: number, rz: number, points = 14, colors: { fill: str
 }
 
 /**
- * What's printed on a curtain `width` by `height` in `color`: the picture at `url`, as wide as it fits
- * with a margin, its middle about 2.3 m up; the cloth's color all round it. It paints in once loaded.
+ * What's printed on a curtain `width` by `height`: the picture at `url` all over it, filling it the way
+ * CSS's object-fit: cover does (cut down to the curtain's shape, round its middle). Until it has
+ * loaded, the cloth is just `color`.
  */
 function curtainPrint(width: number, height: number, color: string, url: string): THREE.CanvasTexture {
   const c = document.createElement('canvas');
-  c.width = 512;
-  c.height = Math.round((512 * height) / width);
+  c.width = 768;
+  c.height = Math.round((768 * height) / width);
   const g = c.getContext('2d')!;
   g.fillStyle = color;
   g.fillRect(0, 0, c.width, c.height);
@@ -1282,10 +1285,10 @@ function curtainPrint(width: number, height: number, color: string, url: string)
   tex.anisotropy = 4;
   const img = new Image();
   img.onload = () => {
-    const w = c.width * 0.86;
-    const h = (w * img.height) / img.width;
-    const mid = c.height * (1 - 2.3 / height);
-    g.drawImage(img, (c.width - w) / 2, mid - h / 2, w, h);
+    const k = Math.max(c.width / img.width, c.height / img.height);
+    const w = img.width * k;
+    const h = img.height * k;
+    g.drawImage(img, (c.width - w) / 2, (c.height - h) / 2, w, h);
     tex.needsUpdate = true;
   };
   img.src = url;
@@ -1295,7 +1298,7 @@ function curtainPrint(width: number, height: number, color: string, url: string)
 /**
  * A curtain `width` wide and `height` tall, in two halves on a rod over it: pleated all the way down,
  * the folds deeper toward the hem, so it falls in light and dark stripes. Built across x, facing +z.
- * With `print`, a picture is printed across it at about eye height, on its `color`. `show(k)` draws
+ * With `print`, a picture is printed all over it (see curtainPrint). `show(k)` draws
  * it: 0 shut, 1 gathered at either side, its folds (and the picture) bunched up.
  */
 export function buildCurtain(width: number, height: number, color = '#8c2130', pickable = false, print?: string): { group: THREE.Group; show(k: number): void } {
@@ -1599,7 +1602,7 @@ export function buildOffice(): Office {
   doors.push(exit.door);
   // The curtain across the way into the back office, where the board agents stand: it parts for
   // whoever comes up to it, like a door.
-  const curtain = buildCurtain(FLOOR.maxX - WING.minX, WALL_HEIGHT - 0.3, AGENTS_CURTAIN, false, treeUrl);
+  const curtain = buildCurtain(FLOOR.maxX - WING.minX, WALL_HEIGHT - 0.3, AGENTS_CURTAIN, false, meadowUrl);
   const curtainX = (WING.minX + FLOOR.maxX) / 2;
   curtain.group.position.set(curtainX, 0, FLOOR.minZ - WALL_T / 2);
   group.add(curtain.group);
@@ -1735,7 +1738,7 @@ export function buildOffice(): Office {
   }
   // A curtain across each pane of the east wall's glass from the north corner to the one past the
   // machine's monitor (south of that the loft's floor is in the way): before the boards, the TV and
-  // the monitor, floor to ceiling, each its own grey with a picture on it. Click one to draw it open or shut.
+  // the monitor, floor to ceiling, each with a picture printed all over it. Click one to draw it open or shut.
   const drapes: { want: number; open: number; show(k: number): void }[] = [];
   EAST_CURTAINS.forEach((color, i) => {
     const z = FLOOR.minZ + EAST_PANE * (i + 0.5);
