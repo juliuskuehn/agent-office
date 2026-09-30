@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, LOUNGE, LOUNGE_DESKS, LOUNGE_TOGO, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, ROUND_TABLE, ROUND_TABLES, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
+import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARD_FRAME, BOARDS, BOOKSHELF, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, LOUNGE, LOUNGE_DESKS, LOUNGE_TOGO, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, ROUND_TABLE, ROUND_TABLES, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
 import { wallFacing, type WallId, type WallRect } from '../../shared/decor';
 import { deskPoint } from '../../shared/nav';
 import { FLOOR_PALETTES, type FloorPalette } from '../../shared/floors';
@@ -981,6 +981,9 @@ function buildWing(group: THREE.Group, colliders: Collider[], interactables: Int
   const it: Interactable = { kind: 'expand', x: midX, z: FLOOR.minZ + 0.3, radius: 2.2 };
   interactables.push(it);
   sign.userData.interact = it;
+  // The back office is always open now, as the board agents' room: nothing to grow or wall up.
+  sign.visible = false;
+  it.off = true;
 
   let built: THREE.Object3D[] = [];
   let mine: Collider[] = [];
@@ -1348,12 +1351,12 @@ function buildKiosk(def: DeskDef): DeskView {
 /** A framed board on a wall; the face gets a canvas texture (cork, chalk or whiteboard). */
 function wallBoard(width: number, height: number, frameColor: string): { group: THREE.Group; face: THREE.Mesh } {
   const group = new THREE.Group();
-  const frame = mesh(roundedBox(width + 0.3, 0.12, height + 0.3, 0.1), toon(frameColor), 0, 0, 0);
+  const frame = mesh(roundedBox(width + 2 * BOARD_FRAME, 0.06, height + 2 * BOARD_FRAME, 0.02), toon(frameColor), 0, 0, 0);
   frame.rotation.x = Math.PI / 2;
   group.add(frame);
   const faceMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
   const face = new THREE.Mesh(new THREE.PlaneGeometry(width, height), faceMat);
-  face.position.z = 0.07;
+  face.position.z = 0.035;
   group.add(face);
   return { group, face };
 }
@@ -1490,7 +1493,7 @@ export function buildOffice(): Office {
     const collider = { minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs), top: BEANBAG_BOX.top };
     beanbags.set(def.id, { view, it, collider });
   });
-  // The board agents' kiosks, each beside its board.
+  // The board agents' kiosks, round the back office.
   for (const def of STATIONS) {
     const view = buildKiosk(def);
     group.add(view.group);
@@ -1500,22 +1503,14 @@ export function buildOffice(): Office {
     const corners = [-1, 1].flatMap((t) => [-KIOSK.depth / 2, KIOSK.stand + 0.35].map((sz) => deskPoint(def, (t * KIOSK.width) / 2, sz)));
     const xs = corners.map(([x]) => x);
     const zs = corners.map(([, z]) => z);
-    const wall = wallFacing(def.rotY + Math.PI);
-    colliders.push({
-      minX: wall === 'west' ? FLOOR.minX : Math.min(...xs),
-      maxX: wall === 'east' ? FLOOR.maxX : Math.max(...xs),
-      minZ: wall === 'north' ? FLOOR.minZ : Math.min(...zs),
-      maxZ: wall === 'south' ? FLOOR.maxZ : Math.max(...zs),
-      top: 1.5,
-      fence: true,
-    });
+    // (The last bit of floor to the wall behind the agent too, whichever way it faces.)
+    const [bx, bz] = deskPoint(def, 0, KIOSK.stand + 0.9);
+    colliders.push({ minX: Math.min(...xs, bx), maxX: Math.max(...xs, bx), minZ: Math.min(...zs, bz), maxZ: Math.max(...zs, bz), top: 1.5, fence: true });
     // Walk up to its front.
     const [fx, fz] = deskPoint(def, 0, -1);
     const it: Interactable = { kind: 'station', deskId: def.id, x: fx, z: fz, radius: 1.3 };
     interactables.push(it);
     view.group.userData.interact = it;
-    // The agent, its name tag and the card over its head, up against the wall.
-    fixture(wall, wall === 'north' || wall === 'south' ? def.x : def.z, 1.45, 1.4, 2.9);
   }
   const setBeanbags = (out: Set<string>) => {
     const appeared: Collider[] = [];
@@ -1541,7 +1536,7 @@ export function buildOffice(): Office {
     const nz = Math.cos(b.rotY);
     // The queue is a whiteboard in an aluminium frame; the others hang in wood.
     const { group: bg, face } = wallBoard(b.width, b.height, key === 'queue' ? '#aab4be' : PALETTE.wood);
-    bg.position.set(b.x + nx * 0.08, b.y, b.z + nz * 0.08);
+    bg.position.set(b.x + nx * 0.05, b.y, b.z + nz * 0.05);
     bg.rotation.y = b.rotY;
     group.add(bg);
     boardMeshes[key] = face;
@@ -1550,25 +1545,26 @@ export function buildOffice(): Office {
     bg.userData.interact = it;
     // The board, and the wall over it up to the ceiling.
     const wall = wallFacing(b.rotY);
-    const bottom = b.y - (b.height + 0.3) / 2;
-    fixture(wall, wall === 'north' || wall === 'south' ? b.x : b.z, (bottom + WALL_HEIGHT) / 2, b.width + 0.3, WALL_HEIGHT - bottom);
+    const bottom = b.y - b.height / 2 - BOARD_FRAME;
+    fixture(wall, wall === 'north' || wall === 'south' ? b.x : b.z, (bottom + WALL_HEIGHT) / 2, b.width + 2 * BOARD_FRAME, WALL_HEIGHT - bottom);
   }
 
   // Lounge: TV, couch, coffee table, beanbags, and the jukebox and the arcade in the corner
   const tvGroup = new THREE.Group();
-  tvGroup.add(mesh(roundedBox(TV.width + 0.3, 0.14, TV.height + 0.3, 0.12), toon(PALETTE.ink), 0, 0, 0));
+  // A bezel the boards' size, the 16:9 screen as high as it and black either side.
+  tvGroup.add(mesh(roundedBox(TV.width + 2 * BOARD_FRAME, 0.06, TV.height + 2 * BOARD_FRAME, 0.02), toon(PALETTE.ink), 0, 0, 0));
   (tvGroup.children[0] as THREE.Mesh).rotation.x = Math.PI / 2;
-  const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(TV.width, TV.height), new THREE.MeshBasicMaterial({ color: '#1b1d2e' }));
-  tvScreen.position.z = 0.08;
+  const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry((TV.height * 16) / 9, TV.height), new THREE.MeshBasicMaterial({ color: '#1b1d2e' }));
+  tvScreen.position.z = 0.035;
   tvGroup.add(tvScreen);
   // On the east wall, facing into the room.
-  tvGroup.position.set(TV.x - 0.1, TV.y, TV.z);
+  tvGroup.position.set(TV.x + 0.05, TV.y, TV.z);
   tvGroup.rotation.y = -Math.PI / 2;
   group.add(tvGroup);
   const tv: Interactable = { kind: 'tv', x: TV.x - 4.5, z: TV.z, radius: 3.2 };
   interactables.push(tv);
   tvGroup.userData.interact = tv;
-  fixture('east', TV.z, TV.y, TV.width + 0.3, TV.height + 0.3);
+  fixture('east', TV.z, TV.y, TV.width + 2 * BOARD_FRAME, TV.height + 2 * BOARD_FRAME);
 
   // The machine monitor on the north wall past the elevator, facing into the room.
   const monitor = new THREE.Group();

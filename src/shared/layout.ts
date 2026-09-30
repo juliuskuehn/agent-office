@@ -87,18 +87,15 @@ function buildDesks(): DeskDef[] {
 export const DESKS: DeskDef[] = buildDesks();
 
 /**
- * The back office: a bay knocked through the north wall between the gong and the east wall, for a
- * floor that needs more desks than the room has. Each time someone expands the floor (see
- * shared/floorplan.ts), its back wall goes another `row` meters north, with two more desks back to
- * back in the middle, up to `rows` times: any further and it would stand in the street behind the
- * building (world/city.ts). It runs from `minX` (the gong keeps its bit of wall) to the east wall,
- * and from the old north wall back to wingMinZ.
+ * The back office: a bay through the north wall between the elevator and the east wall, `row` meters
+ * deep, where the board agents stand (see STATIONS). It's always open, on every floor, and has no
+ * desks. It runs from `minX` to the east wall, and from the old north wall back to wingMinZ.
  */
-export const WING = { minX: 13.4, maxX: FLOOR.maxX, row: 4.6, rows: 2 } as const;
+export const WING = { minX: 13.4, maxX: FLOOR.maxX, row: 4.6, rows: 1 } as const;
 
-/** A floor built out `level` rows, as a whole number from 0 (just the room) to WING.rows. */
-export function wingLevel(level: unknown): number {
-  return typeof level === 'number' && Number.isFinite(level) ? Math.max(0, Math.min(WING.rows, Math.floor(level))) : 0;
+/** How many rows a floor is built out: always all of them (a floor plan saved when it could be fewer says nothing now). */
+export function wingLevel(_level?: unknown): number {
+  return WING.rows;
 }
 
 /** How far north the back office's back wall is, built out `level` rows: the north wall with none. */
@@ -116,21 +113,8 @@ export function wingRowZ(row: number): number {
   return FLOOR.minZ - (row - 0.5) * WING.row;
 }
 
-/**
- * The back office's desks: a back-to-back pair down the middle of each row, like half a pod, with
- * room to walk round either side. The far one's worker faces the room; the near one's faces the back.
- */
-export const WING_DESKS: DeskDef[] = Array.from({ length: WING.rows }, (_, i) => {
-  const z = wingRowZ(i + 1);
-  const x = (WING.minX + WING.maxX) / 2;
-  // Numbered on from where the room's desks ended when there were sixteen, so a back office's desks
-  // (and whoever sits at them) keep their ids.
-  const n = 17 + 2 * i;
-  return [
-    { id: `desk-${n}`, x, z: z - DESK_DEPTH / 2, rotY: Math.PI, label: `Desk ${n}`, wing: i + 1 },
-    { id: `desk-${n + 1}`, x, z: z + DESK_DEPTH / 2, rotY: 0, label: `Desk ${n + 1}`, wing: i + 1 },
-  ];
-}).flat();
+/** The back office's desks: none, it's the board agents' room. */
+export const WING_DESKS: DeskDef[] = [];
 
 /** Whether `desk` is there on a floor built out `level` rows: every desk in the room is. */
 export function deskBuilt(desk: DeskDef, level: number): boolean {
@@ -173,15 +157,16 @@ export const SEATS: DeskDef[] = [...DESKS, ...WING_DESKS, ...BEANBAGS];
 export type StationKind = 'issues' | 'pulls' | 'queue';
 
 /**
- * The board agents: a worker standing behind a little kiosk in front of each of those boards (see
- * BOARDS), there for anyone to prompt about it. (x, z) is the kiosk. They face into the room, so at
- * rotY PI/2 the worker stands on the (east) wall side of it. Nobody hires them from the desks or the queue.
+ * The board agents: a worker standing behind a little kiosk for each of those boards (see BOARDS),
+ * round the back office (WING), there for anyone to prompt about it. (x, z) is the kiosk. They face
+ * into the middle of it, so the worker stands on the wall's side of it. Nobody hires them from the desks or the queue.
  */
 export const STATIONS: DeskDef[] = [
-  // Each in front of its board, under it.
-  { id: 'station-issues', station: 'issues', x: FLOOR.maxX - 1.3, z: eastBay(0), rotY: Math.PI / 2, label: 'Issues board' },
-  { id: 'station-queue', station: 'queue', x: FLOOR.maxX - 1.3, z: eastBay(1), rotY: Math.PI / 2, label: 'Task queue' },
-  { id: 'station-pulls', station: 'pulls', x: FLOOR.maxX - 1.3, z: eastBay(2), rotY: Math.PI / 2, label: 'PR board' },
+  // Round the back office, facing into the middle of it: the Issues agent by its west wall, the Queue
+  // agent by the back wall, and the PR agent by the east wall.
+  { id: 'station-issues', station: 'issues', x: WING.minX + 1.3, z: FLOOR.minZ - 1.3, rotY: -Math.PI / 2, label: 'Issues board' },
+  { id: 'station-queue', station: 'queue', x: (WING.minX + WING.maxX) / 2, z: wingMinZ(WING.rows) + 1.3, rotY: Math.PI, label: 'Task queue' },
+  { id: 'station-pulls', station: 'pulls', x: WING.maxX - 1.3, z: FLOOR.minZ - 1.3, rotY: Math.PI / 2, label: 'PR board' },
 ];
 /** A board agent's kiosk: its top, and how far behind its middle (toward the wall) the agent stands. */
 export const KIOSK = { width: 0.8, depth: 0.5, height: 0.55, stand: 0.55 } as const;
@@ -267,23 +252,29 @@ export function deskSeat(desk: DeskDef, offset = 0.85): { x: number; z: number }
   };
 }
 
-/** How big every wall board is (its frame a pane's width, 2:1 inside), and how high the middle of the row hangs: over the heads of the board agents in front. */
-const BOARD_SIZE = { width: EAST_PANE - 0.4, height: (EAST_PANE - 0.4) / 2 } as const;
-export const BOARD_ROW_Y = 2.6;
+/** How big every wall board is (its thin frame a pane's width, 2:1 inside), and how high the middle of the row hangs. */
+const BOARD_SIZE = { width: EAST_PANE - 0.2, height: (EAST_PANE - 0.2) / 2 } as const;
+/** How far a board's frame, or the TV's bezel, stands out round its face. */
+export const BOARD_FRAME = 0.04;
+export const BOARD_ROW_Y = 2;
 /** Wall boards. `rotY` is the way the board faces (0 = +z; the east wall's face -x, into the room). */
 export const BOARDS = {
   // One row along the east wall, a pane each, from the north corner to the TV, the way work goes:
   // the issues, the task queue they go onto, the pull requests the workers make and the services
-  // they run. The first three have their board agent's kiosk in front of them (see STATIONS). All
-  // are the same size (BOARD_SIZE), 2:1, which is what their faces are drawn for.
+  // they run. The first three have an agent standing by in the back office (see STATIONS). All are
+  // the same size (BOARD_SIZE), 2:1, which is what their faces are drawn for.
   issues: { x: FLOOR.maxX - 0.08, y: BOARD_ROW_Y, z: eastBay(0), rotY: -Math.PI / 2, ...BOARD_SIZE, label: 'Issues' },
   queue: { x: FLOOR.maxX - 0.08, y: BOARD_ROW_Y, z: eastBay(1), rotY: -Math.PI / 2, ...BOARD_SIZE, label: '📋 Task queue' },
   pulls: { x: FLOOR.maxX - 0.08, y: BOARD_ROW_Y, z: eastBay(2), rotY: -Math.PI / 2, ...BOARD_SIZE, label: 'Pull Requests' },
   services: { x: FLOOR.maxX - 0.08, y: BOARD_ROW_Y, z: eastBay(3), rotY: -Math.PI / 2, ...BOARD_SIZE, label: '🌐 Services' },
 } as const;
 
-/** The big TV that shows whoever is screen sharing: on the east wall in the middle pane, at the end of the boards' row and behind the Togo, facing the couch across the lounge. 16:9, its bezel a pane wide. */
-export const TV = { x: FLOOR.maxX - 0.1, y: BOARD_ROW_Y, z: eastBay(4), width: EAST_PANE - 0.3, height: ((EAST_PANE - 0.3) * 9) / 16 } as const;
+/**
+ * The big TV that shows whoever is screen sharing: on the east wall in the middle pane, at the end of
+ * the boards' row and behind the Togo, facing the couch across the lounge. Its bezel is a board's size
+ * (`width` × `height`); the 16:9 screen in it is `height` high, with black either side.
+ */
+export const TV = { x: FLOOR.maxX - 0.1, y: BOARD_ROW_Y, z: eastBay(4), ...BOARD_SIZE } as const;
 /**
  * The monitor on the north wall, just east of the elevator, facing into the room: how busy the
  * office's machine is, and how many workers it runs of the most it takes.
