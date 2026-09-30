@@ -1483,16 +1483,10 @@ export function buildOffice(): Office {
     bg.rotation.y = b.rotY;
     group.add(bg);
     boardMeshes[key] = face;
-    // Its name, small, just over it on the wall: plain text, no pill round it.
-    const label = textPlane(b.label, { size: 64 });
-    label.scale.multiplyScalar(0.5);
-    label.position.set(b.x + nx * 0.04, b.y + b.height / 2 + 0.2, b.z + nz * 0.04);
-    label.rotation.y = b.rotY;
-    group.add(label);
     const it: Interactable = { kind: key, x: b.x + nx * 1.6, z: b.z + nz * 1.6, radius: 2.4 };
     interactables.push(it);
     bg.userData.interact = it;
-    // The board and its label above it, up to the ceiling.
+    // The board, and the wall over it up to the ceiling.
     const wall = wallFacing(b.rotY);
     const bottom = b.y - (b.height + 0.3) / 2;
     fixture(wall, wall === 'north' || wall === 'south' ? b.x : b.z, (bottom + WALL_HEIGHT) / 2, b.width + 0.3, WALL_HEIGHT - bottom);
@@ -1505,13 +1499,13 @@ export function buildOffice(): Office {
   const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(TV.width, TV.height), new THREE.MeshBasicMaterial({ color: '#1b1d2e' }));
   tvScreen.position.z = 0.08;
   tvGroup.add(tvScreen);
-  tvGroup.position.set(TV.x - 0.1, TV.y, TV.z);
-  tvGroup.rotation.y = -Math.PI / 2;
+  // On the north wall, facing into the room.
+  tvGroup.position.set(TV.x, TV.y, TV.z);
   group.add(tvGroup);
-  const tv: Interactable = { kind: 'tv', x: TV.x - 4.5, z: TV.z, radius: 3.2 };
+  const tv: Interactable = { kind: 'tv', x: TV.x, z: TV.z + 4.5, radius: 3.2 };
   interactables.push(tv);
   tvGroup.userData.interact = tv;
-  fixture('east', TV.z, TV.y, TV.width + 0.3, TV.height + 0.3);
+  fixture('north', TV.x, TV.y, TV.width + 0.3, TV.height + 0.3);
 
   // The machine monitor on the north wall past the elevator, facing into the room.
   const monitor = new THREE.Group();
@@ -1525,7 +1519,7 @@ export function buildOffice(): Office {
   group.add(monitor);
   fixture('north', MACHINE_MONITOR.x, MACHINE_MONITOR.y, MACHINE_MONITOR.width + 0.2, MACHINE_MONITOR.height + 0.2);
 
-  // The couch, its back to the room, turned from the model's +z to face the TV on the east wall (+x).
+  // The couch, its back to the room, turned from the model's +z to face out through the east wall's glass (+x).
   const couch = loungeCouch();
   couch.position.set(10.5, 0, 0);
   couch.rotation.y = Math.PI / 2;
@@ -1571,7 +1565,7 @@ export function buildOffice(): Office {
   group.add(shelf.group);
   colliders.push(shelf.collider);
   interactables.push(shelf.interactable);
-  fixture('south', BOOKSHELF.x, (BOOKSHELF.height + 0.55) / 2, BOOKSHELF.width + 0.2, BOOKSHELF.height + 0.55);
+  fixture('west', BOOKSHELF.z, (BOOKSHELF.height + 0.55) / 2, BOOKSHELF.width + 0.2, BOOKSHELF.height + 0.55);
 
   // The kitchen, in the north-east corner: counter + coffee machine + fridge
   const kitchen = buildKitchen();

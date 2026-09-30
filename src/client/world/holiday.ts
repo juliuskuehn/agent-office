@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { BALCONY, DESKS, DESK_SIZE, EXIT_STAIRS, FLOOR, KITCHEN, PLANTS, STREET_Y, WALL_HEIGHT, WINDOWS } from '../../shared/layout';
+import { BALCONY, DESKS, DESK_SIZE, EXIT_STAIRS, FLOOR, KITCHEN, PLANTS, STREET_Y, TV, WALL_HEIGHT, WINDOWS } from '../../shared/layout';
 import type { Theme } from '../../shared/protocol';
 import { batWingGeometry, glowTexture } from './costumes';
 import { plantLeaves, type Collider, type Office } from './office';
@@ -54,7 +54,7 @@ function pumpkinSpots(): Spot[] {
     spots.push([x - (x / d) * 0.55 * s, 0, z - (z / d) * 0.55 * s, 0.2 * s, Math.atan2(-x, -z)]);
   }
   // Under the TV, beside the elevator, out on the balcony and on the landing outside the exit.
-  spots.push([17.55, 0, -2.4, 0.22, FACE.west], [17.6, 0, 2.3, 0.17, FACE.west], [10.35, 0, FLOOR.minZ + 0.4, 0.22, FACE.south]);
+  spots.push([TV.x - 2.4, 0, TV.z + 0.4, 0.22, FACE.south], [TV.x + 2.4, 0, TV.z + 0.4, 0.17, FACE.south], [10.35, 0, FLOOR.minZ + 0.4, 0.22, FACE.south]);
   for (const x of [-9.3, -5.8, -2.2, 1.4]) spots.push([x, 1.105, BALCONY.maxZ - 0.06, 0.13, FACE.north]);
   // (Only the south-east corner: the south-west one has the balcony's potted plant.)
   spots.push([BALCONY.maxX - 0.4, 0, BALCONY.maxZ - 0.4, 0.2, FACE.north]);

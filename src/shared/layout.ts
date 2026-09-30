@@ -143,17 +143,17 @@ export const SEATS: DeskDef[] = [...DESKS, ...WING_DESKS, ...BEANBAGS];
 export type StationKind = 'issues' | 'pulls' | 'queue';
 
 /**
- * The board agents: a worker standing behind a little kiosk just west of each of those boards (see
+ * The board agents: a worker standing behind a little kiosk beside each of those boards (see
  * BOARDS), there for anyone to prompt about it. (x, z) is the kiosk. They face into the room, so at
  * rotY PI the worker stands on the wall side of it. Nobody hires them from the desks or the queue.
  */
 export const STATIONS: DeskDef[] = [
-  // Between the north-west corner and the Issues board.
-  { id: 'station-issues', station: 'issues', x: -16.9, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Issues board' },
-  // Between the task queue and the PR board.
-  { id: 'station-pulls', station: 'pulls', x: -4.9, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'PR board' },
-  // Between the Issues board and the task queue.
-  { id: 'station-queue', station: 'queue', x: -10.9, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Task queue' },
+  // Either side of the Issues board and the task queue's stack: the Issues agent on its west…
+  { id: 'station-issues', station: 'issues', x: -16.3, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Issues board' },
+  // …and the PR agent west of the PR board and the services board's, between it and the TV.
+  { id: 'station-pulls', station: 'pulls', x: 0.3, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'PR board' },
+  // …and the Queue agent on its east, between it and the TV.
+  { id: 'station-queue', station: 'queue', x: -9.5, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Task queue' },
 ];
 /** A board agent's kiosk: its top, and how far behind its middle (toward the wall) the agent stands. */
 export const KIOSK = { width: 0.8, depth: 0.5, height: 0.55, stand: 0.55 } as const;
@@ -239,39 +239,46 @@ export function deskSeat(desk: DeskDef, offset = 0.85): { x: number; z: number }
   };
 }
 
-/** How big every wall board is. */
+/** How big every wall board is, and how high the middles of a stack's two hang. */
 const BOARD_SIZE = { width: 4.2, height: 2.1 } as const;
+const BOARD_ROWS = { bottom: 1.4, top: 3.65 } as const;
 /** Wall boards. `rotY` is the way the board faces (0 = +z, like the north-wall boards). */
 export const BOARDS = {
-  // Side by side along the north wall, the way work goes: an issue goes on the task queue (the
-  // whiteboard in the middle), and its worker's pull request comes out the other side, and the
-  // services its workers run are last before the elevator. The first three have their board agent's
-  // kiosk just west of them (see STATIONS). All are the same size (BOARD_SIZE), 2:1, which is what
-  // their faces are drawn for.
-  issues: { x: -13.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, ...BOARD_SIZE, label: 'Issues' },
-  queue: { x: -7.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, ...BOARD_SIZE, label: '📋 Task queue' },
-  pulls: { x: -1.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, ...BOARD_SIZE, label: 'Pull Requests' },
-  services: { x: 3.4, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, ...BOARD_SIZE, label: '🌐 Services' },
+  // Two stacks of two on the north wall, either side of the TV, the way work goes: the issues over
+  // the task queue they go onto, then the pull requests the workers make over the services they run.
+  // The first three have their board agent's kiosk beside them (see STATIONS). All are the same size
+  // (BOARD_SIZE), 2:1, which is what their faces are drawn for.
+  issues: { x: -13, y: BOARD_ROWS.top, z: FLOOR.minZ + 0.08, rotY: 0, ...BOARD_SIZE, label: 'Issues' },
+  queue: { x: -13, y: BOARD_ROWS.bottom, z: FLOOR.minZ + 0.08, rotY: 0, ...BOARD_SIZE, label: '📋 Task queue' },
+  pulls: { x: 3.4, y: BOARD_ROWS.top, z: FLOOR.minZ + 0.08, rotY: 0, ...BOARD_SIZE, label: 'Pull Requests' },
+  services: { x: 3.4, y: BOARD_ROWS.bottom, z: FLOOR.minZ + 0.08, rotY: 0, ...BOARD_SIZE, label: '🌐 Services' },
 } as const;
 
-/** The big TV on the east wall that shows whoever is screen sharing. */
-export const TV = { x: FLOOR.maxX - 0.1, y: 2.2, z: 0, width: 6.4, height: 3.6 } as const;
+/** The big TV that shows whoever is screen sharing: on the north wall between the boards' stacks, hung low, facing into the room. */
+export const TV = { x: -4.55, y: 2.25, z: FLOOR.minZ + 0.1, width: 6.4, height: 3.6 } as const;
 /**
  * The monitor on the north wall, just east of the elevator, facing into the room: how busy the
  * office's machine is, and how many workers it runs of the most it takes.
  */
 export const MACHINE_MONITOR = { x: 11.6, y: 2.2, z: FLOOR.minZ, width: 2.3, height: 1.3 } as const;
-/** The lounge jukebox, against the east wall south of the TV, facing into the room. `y` is its speaker. */
+/** The lounge jukebox, against the east wall south of the couch, facing into the room. `y` is its speaker. */
 export const JUKEBOX = { x: FLOOR.maxX - 0.42, y: 0.75, z: 5.4, width: 1.3, depth: 0.72, height: 1.85 } as const;
 /** The arcade cabinet, against the east wall between the jukebox and the loft, facing into the room. `width` runs along the wall. */
 export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, height: 1.9 } as const;
 
 /**
  * The bookshelf of the project's docs (every Markdown file in it, see shared/docs.ts): one long, low
- * shelf against the south wall's glass, west of the balcony doors, facing into the room (-z). `width`
- * runs along the wall.
+ * shelf against the west wall's glass, north of the exit door (to its right, seen from inside), clear
+ * of the ladder, facing into the room (+x). `width` runs along the wall.
  */
-export const BOOKSHELF = { x: -7.7, z: FLOOR.maxZ - 0.21, width: 3.6, depth: 0.4, height: 0.75 } as const;
+export const BOOKSHELF = { x: FLOOR.minX + 0.21, z: 3.25, rotY: Math.PI / 2, width: 4.6, depth: 0.4, height: 0.75 } as const;
+/** The floor it takes, back to the wall. */
+export const BOOKSHELF_BOX = {
+  minX: FLOOR.minX,
+  maxX: BOOKSHELF.x + BOOKSHELF.depth / 2 + 0.03,
+  minZ: BOOKSHELF.z - BOOKSHELF.width / 2 - 0.04,
+  maxZ: BOOKSHELF.z + BOOKSHELF.width / 2 + 0.04,
+} as const;
 
 /**
  * The kitchen along the east wall's north end, facing into the room (world/kitchen.ts): the model at
@@ -639,13 +646,13 @@ const transom = (o: Opening): Opening => ({ wall: o.wall, u: o.u, width: o.width
 /**
  * Windows you can see out of: glass fronts all round. The boards and the machine's monitor hang in
  * front of the north one, which is solid only behind the elevator (and east of WING.minX, the back
- * office's, see buildWing); the east is solid behind the TV, and the west's only break is the exit door.
+ * office's, see buildWing); the east is all glass, and the west's only break is the exit door.
  */
 export const WINDOWS: Opening[] = [
   ...glassFront('north', FLOOR.minX, WING.minX, [[ELEVATOR.x - ELEVATOR.width / 2, ELEVATOR.x + ELEVATOR.width / 2]]),
   ...glassFront('south', FLOOR.minX, FLOOR.maxX, [doorway(BALCONY_DOOR)]),
   transom(BALCONY_DOOR),
-  ...glassFront('east', FLOOR.minZ, FLOOR.maxZ, [behind(TV.z, TV.width)]),
+  ...glassFront('east', FLOOR.minZ, FLOOR.maxZ, []),
   ...glassFront('west', FLOOR.minZ, FLOOR.maxZ, [doorway(EXIT_DOOR)]),
   transom(EXIT_DOOR),
 ];
