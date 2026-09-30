@@ -128,6 +128,40 @@ export function paintScreen(ctx: CanvasRenderingContext2D, w: number, h: number,
   }
 }
 
+/**
+ * A studio display's stand, body and keyboard: the stand and keyboard into `root`, the slab of the
+ * display with its black glass into `lid` (where the screen goes), which it stands up on the stand.
+ */
+function displayParts(root: THREE.Group, lid: THREE.Group) {
+  const alu = toon('#d8dce2');
+  const black = toon('#16171b');
+  // The stand: a flat foot, and a sloping plate up from its back to the display's.
+  root.add(mesh(roundedBox(0.3, 0.012, 0.26, 0.05), alu, 0, 0.006, -0.1));
+  const arm = mesh(roundedBox(0.28, 0.02, 0.44, 0.04), alu, 0, 0.21, -0.19);
+  arm.rotation.x = Math.PI / 2 - 0.3;
+  root.add(arm);
+  // The display: a thin slab of aluminium, black glass edge to edge in front, the screen in it.
+  // In front of the plate where it overlaps it, so the plate's behind it, as a real stand is.
+  lid.position.set(0, 0.22, -0.15);
+  const back = mesh(roundedBox(0.8, 0.03, 0.5, 0.025), alu, 0, 0.25, -0.004);
+  back.rotation.x = Math.PI / 2;
+  lid.add(back);
+  lid.add(mesh(new THREE.PlaneGeometry(0.78, 0.48), black, 0, 0.25, 0.0125, false));
+  // A slim keyboard in front of it.
+  root.add(mesh(roundedBox(0.44, 0.012, 0.14, 0.02), alu, 0, 0.006, 0.2));
+  root.add(mesh(new THREE.BoxGeometry(0.4, 0.002, 0.11), toon('#f4f5f7'), 0, 0.013, 0.2, false));
+}
+
+/** A studio display with nobody at it: switched off, its glass dark, stood where a worker's would be (see Laptop). */
+export function idleDisplay(): THREE.Group {
+  const root = new THREE.Group();
+  const lid = new THREE.Group();
+  root.add(lid);
+  displayParts(root, lid);
+  lid.rotation.x = -0.08;
+  return root;
+}
+
 /** What a worker works at: a laptop, the castle's tome, or a studio display (see Laptop). */
 export type DeviceStyle = 'laptop' | 'tome' | 'display';
 
@@ -193,24 +227,7 @@ export class Laptop {
       // A ribbon bookmark hanging out of the pages.
       this.root.add(mesh(new THREE.BoxGeometry(0.03, 0.004, 0.16), toon('#9b1c1c'), 0.2, 0.06, 0.28, false));
     } else if (style === 'display') {
-      const alu = toon('#d8dce2');
-      const black = toon('#16171b');
-      // The stand: a flat foot, and a sloping plate up from its back to the display's.
-      this.root.add(mesh(roundedBox(0.3, 0.012, 0.26, 0.05), alu, 0, 0.006, -0.1));
-      const arm = mesh(roundedBox(0.28, 0.02, 0.44, 0.04), alu, 0, 0.21, -0.19);
-      arm.rotation.x = Math.PI / 2 - 0.3;
-      this.root.add(arm);
-      // The display: a thin slab of aluminium, black glass edge to edge in front, the screen in it.
-      // In front of the plate where it overlaps it, so the plate's behind it, as a real stand is.
-      this.lid.position.set(0, 0.22, -0.15);
-      const back = mesh(roundedBox(0.8, 0.03, 0.5, 0.025), alu, 0, 0.25, -0.004);
-      back.rotation.x = Math.PI / 2;
-      this.lid.add(back);
-      const glass = mesh(new THREE.PlaneGeometry(0.78, 0.48), black, 0, 0.25, 0.0125, false);
-      this.lid.add(glass);
-      // A slim keyboard in front of it.
-      this.root.add(mesh(roundedBox(0.44, 0.012, 0.14, 0.02), alu, 0, 0.006, 0.2));
-      this.root.add(mesh(new THREE.BoxGeometry(0.4, 0.002, 0.11), toon('#f4f5f7'), 0, 0.013, 0.2, false));
+      displayParts(this.root, this.lid);
     } else {
       // A MacBook Pro-ish laptop: space grey all over, black keys, and black glass round the screen.
       const shell = toon('#7d8189');
