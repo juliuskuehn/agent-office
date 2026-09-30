@@ -1,3 +1,4 @@
+import { animalOf, animalParts } from './animals';
 import * as THREE from 'three';
 import { HAIR_COLORS, HAIR_STYLES, SKIN_TONES, type Look } from '../../shared/avatar';
 import { EMOTE_BY_ID, type Emote, type EmoteId } from '../../shared/emotes';
@@ -1508,7 +1509,7 @@ function bones(): THREE.Group {
   return g;
 }
 
-/** The little Claude worker that sits at a desk. Forward is +z. */
+/** The little worker that sits at a desk: an animal (see animals.ts), round as a bean. Forward is +z. */
 export class Worker {
   readonly root = new THREE.Group();
   private body = new THREE.Group();
@@ -1589,12 +1590,22 @@ export class Worker {
   /** Something it's muttering in its cell, and for how many more seconds. */
   private mutterT = 0;
   private label = '';
+  /** Its fur's color (see animalOf): what its skin goes back to after a costume or a cell. */
+  private fur: string;
+  /** Its tail, to wag, and how far and how fast. */
+  private tail: THREE.Object3D | null = null;
+  private wag = 0;
+  private wagSpeed = 0;
 
   constructor(
     name: string,
     private color: string,
   ) {
-    const skin = (this.skin = toonUnique(color));
+    // An animal, the same one every time for the same name, in its fur; its own color is its collar.
+    const animal = animalOf(name);
+    this.fur = animal.fur;
+    const skin = (this.skin = toonUnique(animal.fur));
+    const paws = animal.limbs ? toon(animal.limbs) : skin;
     const white = toon('#ffffff');
     const ink = toon('#1d1d1d');
 
@@ -1602,6 +1613,11 @@ export class Worker {
     // Bean-shaped body
     const bean = mesh(new THREE.CapsuleGeometry(0.28, 0.3, 8, 16), skin, 0, 0.55, 0);
     this.body.add(bean);
+    const parts = animalParts(animal.species, skin, animal.light, color);
+    this.body.add(parts.group);
+    this.tail = parts.tail;
+    this.wag = parts.wag;
+    this.wagSpeed = parts.wagSpeed;
     // Big cartoon eyes
     for (const sx of [-1, 1]) {
       const eye = mesh(new THREE.SphereGeometry(0.09, 12, 10), white, sx * 0.11, 0.7, 0.23, false);
@@ -1632,14 +1648,14 @@ export class Worker {
     const arm = (x: number) => {
       const pivot = new THREE.Group();
       pivot.position.set(x, 0.55, 0.05);
-      pivot.add(mesh(new THREE.CapsuleGeometry(0.055, 0.16, 4, 8), skin, 0, -0.12, 0));
+      pivot.add(mesh(new THREE.CapsuleGeometry(0.055, 0.16, 4, 8), paws, 0, -0.12, 0));
       this.body.add(pivot);
       return pivot;
     };
     this.armL = arm(-0.3);
     this.armR = arm(0.3);
     for (const sx of [-1, 1]) {
-      const foot = mesh(new THREE.CapsuleGeometry(0.06, 0.1, 4, 8), skin, sx * 0.12, 0.2, 0.05);
+      const foot = mesh(new THREE.CapsuleGeometry(0.06, 0.1, 4, 8), paws, sx * 0.12, 0.2, 0.05);
       this.body.add(foot);
       this.feet.push(foot);
     }
@@ -1682,7 +1698,7 @@ export class Worker {
       parent.add(o);
       this.outfit.push(o);
     };
-    this.skin.color.set(this.color);
+    this.skin.color.set(this.fur);
     if (theme === 'halloween') {
       this.skin.color.lerp(ZOMBIE, 0.6).multiplyScalar(0.85);
       wear(this.body, zombieWorker(this.skin));
@@ -1929,7 +1945,7 @@ export class Worker {
       this.fell = Math.random() < 0.5 ? -1 : 1;
     }
     // Pale and sallow as it starves, grey-green once it's dead, and darker as it rots.
-    this.skin.color.set(this.color).lerp(STARVED, 0.55 * k.thin);
+    this.skin.color.set(this.fur).lerp(STARVED, 0.55 * k.thin);
     if (k.dead) this.skin.color.lerp(DEAD, 0.55 + 0.35 * k.rot);
     if (k.dead && !this.crosses.length) {
       const ink = toon('#1d1d1d');
@@ -2010,6 +2026,8 @@ export class Worker {
   }
 
   update(dt: number, t: number) {
+    // Its tail wags whatever it's doing (but not once it's dead in a cell).
+    if (this.tail) this.tail.rotation.z = this.jailed?.dead ? 0 : Math.sin(t * this.wagSpeed + this.phase) * this.wag;
     if (this.jailed) return this.languish(dt, t);
     if (this.leaving) return this.carry(this.leaving, dt, t);
     if (this.dancing) return this.boogie(this.dancing, dt, t);

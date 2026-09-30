@@ -23,6 +23,8 @@ import { DESK_BOOKS, FLOOR_PLANTS, buildCurtain, buildDesk, buildRoundTable, sta
 import { toon } from '../world/toon';
 import { ready, stage } from './stage';
 import { Laptop } from '../world/laptop';
+import { Worker } from '../world/character';
+import { animalOf } from '../world/animals';
 import { IMAC_COLORS, imac, iphone, macMini } from '../world/macs';
 
 /** A prop as the lab shows it: what goes in the scene, and what moves it every frame, if anything. */
@@ -98,6 +100,23 @@ const SHOW: Record<string, () => Shown> = {
     object.add(iphone('#4a4d52', false).translateX(-0.7));
     object.add(iphone('#d9d4ca', true).translateX(-0.85));
     return { object };
+  },
+  // The workers, one of each animal (and each of its coats), side by side, in their collars' colors.
+  animals: () => {
+    const object = new THREE.Group();
+    const seen = new Set<string>();
+    const workers: Worker[] = [];
+    for (let i = 0; i < 400 && workers.length < 12; i++) {
+      const name = `Worker ${i}`;
+      const a = animalOf(name);
+      if (seen.has(a.fur)) continue;
+      seen.add(a.fur);
+      const w = new Worker(name, ['#ef476f', '#118ab2', '#06d6a0', '#ffd166', '#9d4edd', '#ff8a5b'][workers.length % 6]);
+      w.root.position.x = workers.length * 0.9;
+      object.add(w.root);
+      workers.push(w);
+    }
+    return { object, update: (dt, t) => workers.forEach((w) => w.update(dt, t)) };
   },
   // The kitchen's bar: its bottles and glasses, close up.
   bar_bottles: () => ({ object: barBottles() }),
