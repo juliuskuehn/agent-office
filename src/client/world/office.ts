@@ -34,7 +34,7 @@ export interface Collider {
   fence?: boolean;
 }
 
-export type InteractKind = 'desk' | 'station' | 'issues' | 'pulls' | 'services' | 'queue' | 'tv' | 'coffee' | 'decor' | 'smoke' | 'elevator' | 'gong' | 'dog' | 'jukebox' | 'seat' | 'whiteboard' | 'cabinet' | 'ladder' | 'pole' | 'meeting' | 'bar' | 'dj' | 'golf' | 'ball' | 'bookshelf' | 'darts' | 'axe' | 'telescope' | 'car' | 'expand' | 'herald';
+export type InteractKind = 'desk' | 'station' | 'issues' | 'pulls' | 'services' | 'queue' | 'tv' | 'coffee' | 'decor' | 'smoke' | 'elevator' | 'gong' | 'dog' | 'jukebox' | 'seat' | 'whiteboard' | 'cabinet' | 'ladder' | 'pole' | 'meeting' | 'bar' | 'dj' | 'golf' | 'ball' | 'bookshelf' | 'darts' | 'axe' | 'telescope' | 'car' | 'expand' | 'herald' | 'curtain';
 
 /** Something you can use. Its scene object carries it as `userData.interact`, for clicking. */
 export interface Interactable {
@@ -51,6 +51,8 @@ export interface Interactable {
   pole?: number;
   /** Which of CARS (shared/garage.ts), for a car. */
   car?: number;
+  /** Which of the east wall's curtains, for one (see Office.toggleCurtain). */
+  curtain?: number;
   /** Put away for now (a bean bag nobody needs yet): can't be used. */
   off?: boolean;
   /** What the hint calls it, where a map's own looks differ from the office's (the castle's ale for the coffee machine). */
@@ -140,6 +142,10 @@ export interface Office {
   night: NightParts;
   /** The potted plants round the room, in PLANTS' order. At Christmas world/holiday.ts hides their leaves (plantLeaves()) and stands a little tree in each pot. */
   plants: THREE.Group[];
+  /** Draws the east wall's `i`th curtain open, or shut if it's open: they move when clicked, not when walked up to. */
+  toggleCurtain(i: number): void;
+  /** Whether the east wall's `i`th curtain is (going) open. */
+  curtainOpen(i: number): boolean;
   /** Animates the office; doors open for anyone in `people` who comes up to them. */
   update(t: number, dt: number, people: Iterable<{ x: number; y: number; z: number }>): void;
 }
@@ -213,6 +219,8 @@ const RUG_PINK = '#ffc6ff';
 const OFFICE_FLOOR = { floor: RUG_PINK };
 /** The rug the round table stands on, its chairs and all: a black starburst with a grey edge (`star`), `reach` to its spikes' tips; `color` is the back office's. */
 const DESK_RUG = { color: '#d62828', radius: 4.4, star: { fill: '#161616', edge: '#8d9199' }, reach: 6.6 } as const;
+/** The east wall's curtains' colors, north to south: before the four boards, the TV, the machine's monitor and the window past it. */
+const EAST_CURTAINS = ['#8c2130', '#1d4e89', '#2d6a4f', '#d4a017', '#6a4c93', '#e07a5f', '#1a9a9a'] as const;
 /** The walls, their trim and every window's and door's frame, on every floor whatever its palette: one light grey. */
 const OFFICE_WALL = '#e8e8e8';
 
@@ -1258,7 +1266,7 @@ export function starRug(rx: number, rz: number, points = 14, colors: { fill: str
  * the folds deeper toward the hem, so it falls in light and dark stripes. Built across x, facing +z.
  * `show(k)` draws it: 0 shut, 1 gathered at either side, its folds bunched up.
  */
-export function buildCurtain(width: number, height: number, color = '#8c2130'): { group: THREE.Group; show(k: number): void } {
+export function buildCurtain(width: number, height: number, color = '#8c2130', pickable = false): { group: THREE.Group; show(k: number): void } {
   const group = new THREE.Group();
   const cloth = toonUnique(color);
   cloth.side = THREE.DoubleSide;
@@ -1283,8 +1291,8 @@ export function buildCurtain(width: number, height: number, color = '#8c2130'): 
     const m = new THREE.Mesh(geo, cloth);
     m.castShadow = true;
     m.receiveShadow = true;
-    // Looked through, not at: what's behind it is what you use.
-    m.raycast = () => {};
+    // Unless it's one you draw by clicking it, looked through, not at: what's behind it is what you use.
+    if (!pickable) m.raycast = () => {};
     // Each half hangs from its outer end: the west half grows east, the east half (mirrored) west.
     m.position.x = side * half;
     m.scale.x = -side;
@@ -1689,15 +1697,24 @@ export function buildOffice(): Office {
     const bottom = b.y - b.height / 2 - BOARD_FRAME;
     fixture(wall, wall === 'north' || wall === 'south' ? b.x : b.z, (bottom + WALL_HEIGHT) / 2, b.width + 2 * BOARD_FRAME, WALL_HEIGHT - bottom);
   }
-  // A curtain in front of each board, floor to ceiling across its pane of the glass: drawn, it parts
-  // for whoever walks up to read it, like the one before the board agents' room.
-  for (const b of Object.values(BOARDS)) {
-    const curtain = buildCurtain(EAST_PANE - 0.12, WALL_HEIGHT - 0.3);
-    curtain.group.position.set(b.x - 0.35, 0, b.z);
-    curtain.group.rotation.y = b.rotY;
+  // A curtain across each pane of the east wall's glass from the north corner to the one past the
+  // machine's monitor (south of that the loft's floor is in the way): before the boards, the TV and
+  // the monitor, floor to ceiling, each its own color. Click one to draw it open or shut.
+  const drapes: { want: number; open: number; show(k: number): void }[] = [];
+  EAST_CURTAINS.forEach((color, i) => {
+    const z = FLOOR.minZ + EAST_PANE * (i + 0.5);
+    const curtain = buildCurtain(EAST_PANE - 0.12, WALL_HEIGHT - 0.3, color, true);
+    curtain.group.position.set(FLOOR.maxX - 0.35, 0, z);
+    curtain.group.rotation.y = -Math.PI / 2;
+    curtain.group.userData.interact = { kind: 'curtain', curtain: i, x: FLOOR.maxX - 1.6, z, radius: 2.4 } satisfies Interactable;
     group.add(curtain.group);
-    doors.push({ x: b.x - 1.6, y: 0, z: b.z, open: 0, show: curtain.show });
-  }
+    drapes.push({ want: 0, open: 0, show: curtain.show });
+  });
+  const toggleCurtain = (i: number) => {
+    const d = drapes[i];
+    if (d) d.want = 1 - d.want;
+  };
+  const curtainOpen = (i: number) => drapes[i]?.want === 1;
 
   // Lounge: TV, couch, coffee table, beanbags, and the jukebox and the arcade in the corner
   const tvGroup = new THREE.Group();
@@ -1914,6 +1931,11 @@ export function buildOffice(): Office {
   const update = (t: number, dt: number, people: Iterable<{ x: number; y: number; z: number }>) => {
     const near = new Set<Door>();
     for (const p of people) for (const d of doors) if (Math.abs(p.y - d.y) < 1.6 && Math.hypot(p.x - d.x, p.z - d.z) < 2.4) near.add(d);
+    for (const d of drapes) {
+      if (d.open === d.want) continue;
+      d.open = d.want > d.open ? Math.min(1, d.open + dt * 1.1) : Math.max(0, d.open - dt * 1.1);
+      d.show(d.open);
+    }
     for (const d of doors) {
       const want = near.has(d) && !d.locked ? 1 : 0;
       if (d.open === want) continue;
@@ -1934,7 +1956,7 @@ export function buildOffice(): Office {
     scenic.update(t);
   };
 
-  return { group, colliders, interactables, desks, setBeanbags, boardMeshes, tvScreen, bossScreen, machineScreen, meetingBoard: meeting.board, meetingSign: meeting.sign, fixtures: () => fixtures, elevator, garageLift, cars, scenic, skyline, skylineCountry, jukebox, cabinet, tee, green, stack, wing, setWing, signs, setProjectName, setLook, setLevel, night, plants, update };
+  return { group, colliders, interactables, desks, setBeanbags, boardMeshes, tvScreen, bossScreen, machineScreen, meetingBoard: meeting.board, meetingSign: meeting.sign, fixtures: () => fixtures, elevator, garageLift, cars, scenic, skyline, skylineCountry, toggleCurtain, curtainOpen, jukebox, cabinet, tee, green, stack, wing, setWing, signs, setProjectName, setLook, setLevel, night, plants, update };
 }
 
 /** A chair at the meeting table, with its laptop on the table in front of it. */
