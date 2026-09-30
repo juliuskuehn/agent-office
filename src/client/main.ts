@@ -14,7 +14,7 @@ import { EYE_HEIGHT, PlayerController, groundAt, isTyping } from './player';
 import { Climber, gripOf, type Arrival, type Grip, type Way } from './climb';
 import { Driver } from './driving';
 import { Caffeine } from './caffeine';
-import { buildOffice, type DeskView, type InteractKind, type Interactable } from './world/office';
+import { CURTAIN_PICTURES, CURTAIN_SLOTS, buildOffice, type DeskView, type InteractKind, type Interactable } from './world/office';
 import { officeWorld, type World } from './world/world';
 import { BUILDERS } from './world/styles';
 import { Court } from './world/court';
@@ -23,6 +23,7 @@ import { DrunkVision } from './world/drunk';
 import { Booze, type Stage as Feeling } from './booze';
 import { djFrame, djTime } from './dnb';
 import { openBar } from './ui/bar';
+import { openCurtains } from './ui/curtains';
 import { DRINK_BY_ID, ROOF, ROOF_NAME, type Drink, type DrinkId } from '../shared/rooftop';
 import { BACKSWING_TIME, IMPACT, Person, Worker, type Stage } from './world/character';
 import { GolfBalls, PIN_DISTANCE, TEE_BALL, fly, lieText, pinText, type Flight, type Hit, type Shot } from './world/golf';
@@ -323,6 +324,13 @@ const tvIdle = (() => {
   return t;
 })();
 const tvMat = office.tvScreen.material as THREE.MeshBasicMaterial;
+// The curtains' pictures as you last picked them (see showCurtains).
+try {
+  const saved: unknown = JSON.parse(localStorage.getItem('agent-office:curtains') ?? '[]');
+  if (Array.isArray(saved)) saved.forEach((id, slot) => typeof id === 'string' && office.curtains.pick(slot, id));
+} catch {
+  // Nothing saved, or no storage: the curtains keep their own.
+}
 tvMat.color.set('#ffffff');
 tvMat.map = tvIdle;
 tvMat.toneMapped = false;
@@ -3005,6 +3013,26 @@ const CHEERS: Record<string, string> = {
 };
 
 /** E at the bar: the menu. */
+/** Where the curtains' pictures you picked are kept, in this browser. */
+const CURTAINS_KEY = 'agent-office:curtains';
+
+/** On the lounge's couch: which picture goes on which curtains. */
+function showCurtains() {
+  openCurtains({
+    slots: CURTAIN_SLOTS,
+    pictures: CURTAIN_PICTURES,
+    picked: (slot) => office.curtains.picked(slot),
+    pick: (slot, id) => {
+      office.curtains.pick(slot, id);
+      try {
+        localStorage.setItem(CURTAINS_KEY, JSON.stringify(CURTAIN_SLOTS.map((_, i) => office.curtains.picked(i))));
+      } catch {
+        // Nowhere to keep it: it's picked till the page reloads.
+      }
+    },
+  });
+}
+
 function showBar() {
   openBar({ cutOff: booze.cutOff(performance.now() / 1000), kitchen: !upTop, order: orderDrink });
 }
@@ -3465,6 +3493,7 @@ function useSeat(seatId: string) {
   if (!seat) return;
   if (player.seat?.seatId === seatId) {
     if (seat.tv && tvShowing()) watchShare();
+    else if (seat.tv && inOffice()) showCurtains();
     else if (seat.game) arcade.play();
     else if (seat.bar) showBar();
     else standUp();
@@ -3765,7 +3794,7 @@ function hintFor(it: Interactable): Hint {
       if (!seat) return { k: '', parts: [] };
       if (player.seat?.seatId === seat.id) {
         const tv = !!seat.tv && tvShowing();
-        const use = tv ? 'Watch the TV' : seat.game ? 'Play Minesweeper' : seat.bar ? 'Order a drink' : '';
+        const use = tv ? 'Watch the TV' : seat.tv && inOffice() ? 'Curtain pictures' : seat.game ? 'Play Minesweeper' : seat.bar ? 'Order a drink' : '';
         return { k: `${seat.id}|sitting|${tv}`, parts: [title(seat.label), aside('sitting'), ...(use ? [key('E', use), key('W A S D', 'Get up')] : [key('E', 'Get up')])] };
       }
       const full = !freePlace(seat);

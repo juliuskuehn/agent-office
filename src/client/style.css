@@ -1312,3 +1312,12 @@ a.when:hover { text-decoration: underline; }
   .loading-paw, .loading-shadow { animation: none; }
   #loading, .loading-fill { transition: none; }
 }
+
+/* The curtains' pictures (ui/curtains.ts): a row of thumbnails for each set of curtains, the one on them pressed in. */
+.curtain-slot + .curtain-slot { margin-top: 10px; }
+.curtain-slot-name { margin: 0 0 4px; font-size: 15px; color: var(--label); }
+.curtain-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.curtain-pick { width: 64px; height: 84px; padding: 0; border: var(--line) dotted var(--ink); border-radius: var(--radius); background: none; overflow: hidden; cursor: pointer; }
+.curtain-pick img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.curtain-pick:hover { border-style: solid; }
+.curtain-pick[aria-pressed=true] { border-style: solid; outline: 2px solid var(--ink); outline-offset: 1px; }

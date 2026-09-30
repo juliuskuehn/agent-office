@@ -21,6 +21,8 @@ import gunStoreUrl from '../models/curtain-gun-store.jpg?url';
 import treeUrl from '../models/curtain-tree.jpg?url';
 import splashUrl from '../models/curtain-splash.jpg?url';
 import meadowUrl from '../models/curtain-meadow.jpg?url';
+import cabbageUrl from '../models/curtain-cabbage.jpg?url';
+import seatsUrl from '../models/curtain-seats.jpg?url';
 import snowUrl from '../models/curtain-snow.jpg?url';
 import { IMAC_SCALE, idleDisplay } from './laptop';
 import { IMAC_COLORS, imac, iphone, macMini } from './macs';
@@ -151,6 +153,8 @@ export interface Office {
   toggleCurtain(i: number): void;
   /** Whether the east wall's `i`th curtain is (going) open. */
   curtainOpen(i: number): boolean;
+  /** Which picture is on the curtains, by CURTAIN_SLOTS, and printing another there. */
+  curtains: CurtainPictures;
   /** Animates the office; doors open for anyone in `people` who comes up to them. */
   update(t: number, dt: number, people: Iterable<{ x: number; y: number; z: number }>): void;
 }
@@ -226,17 +230,35 @@ const OFFICE_FLOOR = { floor: RUG_PINK };
 const DESK_RUG = { color: '#d62828', radius: 4.4, star: { fill: '#161616', edge: '#8d9199' }, reach: 6.6 } as const;
 /** The east wall's curtains' greys, north to south (before the four boards, the TV, the machine's monitor and the window past it), which show till their pictures load; and the pictures printed all over them, taking turns. */
 const EAST_CURTAINS = ['#5f6368', '#9ea3a9', '#74797f', '#c3c6ca', '#686c72', '#adb1b6', '#83888e'] as const;
-/** Each picture across two of them side by side, but the last, on its own. */
-const CURTAIN_PRINTS: CurtainPrint[] = [
-  { url: snowUrl, part: 0, of: 2 },
-  { url: snowUrl, part: 1, of: 2 },
-  { url: treeUrl, part: 0, of: 2 },
-  { url: treeUrl, part: 1, of: 2 },
-  { url: meadowUrl, part: 0, of: 2 },
-  { url: meadowUrl, part: 1, of: 2 },
-  { url: splashUrl },
+/** The pictures there are to print on the curtains (see Office.curtains). */
+export const CURTAIN_PICTURES: readonly CurtainPicture[] = [
+  { id: 'snow', name: 'Snowy pond', url: snowUrl },
+  { id: 'tree', name: 'Tree by the lake', url: treeUrl },
+  { id: 'meadow', name: 'Meadow ride', url: meadowUrl },
+  { id: 'splash', name: 'Splash', url: splashUrl },
+  { id: 'gun-store', name: 'The Gun Store', url: gunStoreUrl },
+  { id: 'cabbage', name: 'Cabbage cups', url: cabbageUrl },
+  { id: 'seats', name: 'Blue seats', url: seatsUrl },
 ];
-/** The grey of the curtain before the board agents' room (the Gun Store's printed on it). */
+/**
+ * What the curtains' pictures are chosen for: a picture across each pair of the east wall's side by
+ * side, the last one on its own, and the one before the board agents' room; and what each starts with.
+ */
+export const CURTAIN_SLOTS: readonly { name: string; curtains: readonly number[] | 'agents'; picture: string }[] = [
+  { name: 'Curtains 1 & 2', curtains: [0, 1], picture: 'snow' },
+  { name: 'Curtains 3 & 4', curtains: [2, 3], picture: 'tree' },
+  { name: 'Curtains 5 & 6', curtains: [4, 5], picture: 'meadow' },
+  { name: 'Curtain 7', curtains: [6], picture: 'splash' },
+  { name: "Before the agents' room", curtains: 'agents', picture: 'gun-store' },
+];
+const pictureUrl = (id: string) => (CURTAIN_PICTURES.find((p) => p.id === id) ?? CURTAIN_PICTURES[0]).url;
+/** What's printed on the east wall's `i`th curtain to begin with (see CURTAIN_SLOTS). */
+function startingPrint(i: number): CurtainPrint {
+  const slot = CURTAIN_SLOTS.find((s) => s.curtains !== 'agents' && s.curtains.includes(i))!;
+  const ids = slot.curtains as readonly number[];
+  return { url: pictureUrl(slot.picture), part: ids.indexOf(i), of: ids.length };
+}
+/** The grey of the curtain before the board agents' room, under its picture. */
 const AGENTS_CURTAIN = '#7b8086';
 /** The walls, their trim and every window's and door's frame, on every floor whatever its palette: one light grey. */
 const OFFICE_WALL = '#e8e8e8';
@@ -1278,6 +1300,19 @@ export function starRug(rx: number, rz: number, points = 14, colors: { fill: str
   return g;
 }
 
+/** A picture there is to hang on the curtains. */
+export interface CurtainPicture {
+  id: string;
+  name: string;
+  url: string;
+}
+
+/** The curtains' pictures: which is on each of CURTAIN_SLOTS (by its id), and hanging another there. */
+export interface CurtainPictures {
+  picked(slot: number): string;
+  pick(slot: number, id: string): void;
+}
+
 /** A picture to print on a curtain, and which of how many curtains side by side it's spread over this one is (0 the leftmost, seen from the front). */
 export interface CurtainPrint {
   url: string;
@@ -1320,7 +1355,7 @@ function curtainPrint(width: number, height: number, color: string, { url, part 
  * With `print`, a picture is printed all over it (see curtainPrint). `show(k)` draws
  * it: 0 shut, 1 gathered at either side, its folds (and the picture) bunched up.
  */
-export function buildCurtain(width: number, height: number, color = '#8c2130', pickable = false, print?: CurtainPrint): { group: THREE.Group; show(k: number): void } {
+export function buildCurtain(width: number, height: number, color = '#8c2130', pickable = false, print?: CurtainPrint): { group: THREE.Group; show(k: number): void; setPrint(print: CurtainPrint): void } {
   const group = new THREE.Group();
   const cloth = toonUnique(print ? '#ffffff' : color);
   cloth.side = THREE.DoubleSide;
@@ -1369,7 +1404,15 @@ export function buildCurtain(width: number, height: number, color = '#8c2130', p
     halves.forEach((m, i) => (m.scale.x = (i === 0 ? 1 : -1) * (1 - 0.82 * e)));
   };
   show(0);
-  return { group, show };
+  /** Prints another picture on it in place of the one it has. */
+  const setPrint = (next: CurtainPrint) => {
+    const old = cloth.map;
+    cloth.color.set('#ffffff');
+    cloth.map = curtainPrint(width, height, color, next);
+    if (!old) cloth.needsUpdate = true;
+    old?.dispose();
+  };
+  return { group, show, setPrint };
 }
 
 /**
@@ -1621,7 +1664,9 @@ export function buildOffice(): Office {
   doors.push(exit.door);
   // The curtain across the way into the back office, where the board agents stand: it parts for
   // whoever comes up to it, like a door.
-  const curtain = buildCurtain(FLOOR.maxX - WING.minX, WALL_HEIGHT - 0.3, AGENTS_CURTAIN, false, { url: gunStoreUrl });
+  let agentsCurtain: ReturnType<typeof buildCurtain>;
+  const curtain = buildCurtain(FLOOR.maxX - WING.minX, WALL_HEIGHT - 0.3, AGENTS_CURTAIN, false, { url: pictureUrl(CURTAIN_SLOTS[4].picture) });
+  agentsCurtain = curtain;
   const curtainX = (WING.minX + FLOOR.maxX) / 2;
   curtain.group.position.set(curtainX, 0, FLOOR.minZ - WALL_T / 2);
   group.add(curtain.group);
@@ -1758,21 +1803,33 @@ export function buildOffice(): Office {
   // A curtain across each pane of the east wall's glass from the north corner to the one past the
   // machine's monitor (south of that the loft's floor is in the way): before the boards, the TV and
   // the monitor, floor to ceiling, each with a picture printed all over it. Click one to draw it open or shut.
-  const drapes: { want: number; open: number; show(k: number): void }[] = [];
+  const drapes: { want: number; open: number; show(k: number): void; setPrint(print: CurtainPrint): void }[] = [];
   EAST_CURTAINS.forEach((color, i) => {
     const z = FLOOR.minZ + EAST_PANE * (i + 0.5);
-    const curtain = buildCurtain(EAST_PANE - 0.12, WALL_HEIGHT - 0.3, color, true, CURTAIN_PRINTS[i]);
+    const curtain = buildCurtain(EAST_PANE - 0.12, WALL_HEIGHT - 0.3, color, true, startingPrint(i));
     curtain.group.position.set(FLOOR.maxX - 0.35, 0, z);
     curtain.group.rotation.y = -Math.PI / 2;
     curtain.group.userData.interact = { kind: 'curtain', curtain: i, x: FLOOR.maxX - 1.6, z, radius: 2.4 } satisfies Interactable;
     group.add(curtain.group);
-    drapes.push({ want: 0, open: 0, show: curtain.show });
+    drapes.push({ want: 0, open: 0, show: curtain.show, setPrint: curtain.setPrint });
   });
   const toggleCurtain = (i: number) => {
     const d = drapes[i];
     if (d) d.want = 1 - d.want;
   };
   const curtainOpen = (i: number) => drapes[i]?.want === 1;
+  // Which picture each of CURTAIN_SLOTS has, and printing another there.
+  const picked = CURTAIN_SLOTS.map((s) => s.picture);
+  const curtains: CurtainPictures = {
+    picked: (slot) => picked[slot],
+    pick(slot, id) {
+      const s = CURTAIN_SLOTS[slot];
+      if (!s || !CURTAIN_PICTURES.some((p) => p.id === id) || picked[slot] === id) return;
+      picked[slot] = id;
+      if (s.curtains === 'agents') agentsCurtain.setPrint({ url: pictureUrl(id) });
+      else s.curtains.forEach((c, part) => drapes[c]?.setPrint({ url: pictureUrl(id), part, of: s.curtains.length }));
+    },
+  };
 
   // Lounge: TV, couch, coffee table, beanbags, and the jukebox and the arcade in the corner
   const tvGroup = new THREE.Group();
@@ -2014,7 +2071,7 @@ export function buildOffice(): Office {
     scenic.update(t);
   };
 
-  return { group, colliders, interactables, desks, setBeanbags, boardMeshes, tvScreen, bossScreen, machineScreen, meetingBoard: meeting.board, meetingSign: meeting.sign, fixtures: () => fixtures, elevator, garageLift, cars, scenic, skyline, skylineCountry, toggleCurtain, curtainOpen, jukebox, cabinet, tee, green, stack, wing, setWing, signs, setProjectName, setLook, setLevel, night, plants, update };
+  return { group, colliders, interactables, desks, setBeanbags, boardMeshes, tvScreen, bossScreen, machineScreen, meetingBoard: meeting.board, meetingSign: meeting.sign, fixtures: () => fixtures, elevator, garageLift, cars, scenic, skyline, skylineCountry, toggleCurtain, curtainOpen, curtains, jukebox, cabinet, tee, green, stack, wing, setWing, signs, setProjectName, setLook, setLevel, night, plants, update };
 }
 
 /** A chair at the meeting table, with its laptop on the table in front of it. */
