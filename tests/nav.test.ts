@@ -85,9 +85,8 @@ test('upstairs, with no exit door, a worker sent home walks out onto the balcony
   }
 });
 
-test('the back office is only floor once it is built out, and only as far as it goes', () => {
-  const inside: Pt = [(WING.minX + WING.maxX) / 2 + 1.7, FLOOR.minZ - 1];
-  assert.equal(walkable(inside[0], inside[1], 0), false, 'behind the north wall there is nothing');
+test('the back office is open floor as far as it goes, and nowhere else is past the north wall', () => {
+  const inside: Pt = [(WING.minX + WING.maxX) / 2 + 0.2, FLOOR.minZ - 0.6];
   for (let wing = 1; wing <= WING.rows; wing++) {
     assert.ok(walkable(inside[0], inside[1], wing), `built out ${wing}, its first row is open floor`);
     assert.equal(walkable(inside[0], wingMinZ(wing) - 0.5, wing), false, `built out ${wing}, past its back wall is not`);

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { canLabel, cleanLabel, cleanPlan, rowDesks, signColor, type DeskLabel, type FloorPlan } from '../shared/floorplan.js';
-import { DESK_BY_ID, WING } from '../shared/layout.js';
+import { DESK_BY_ID, WING, WING_DESKS } from '../shared/layout.js';
 
 /**
  * A floor's own layout: the signs over its desks, and how far its back office is built out. Saved in
@@ -51,6 +51,7 @@ export class FloorPlanStore {
 
   /** Walls up the back office's last row, unless someone's working there (`taken`). What went, or why not. */
   shrink(taken: (deskId: string) => boolean): string[] | string {
+    if (!WING_DESKS.length) return "The back office is the board agents' room: it stays open";
     if (this.plan.wing <= 0) return 'There is no back office to wall up';
     const desks = rowDesks(this.plan.wing);
     const busy = desks.find((d) => taken(d.id));
