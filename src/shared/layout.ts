@@ -148,9 +148,9 @@ export function builtDesks(level: number): DeskDef[] {
  */
 export const BEANBAGS: DeskDef[] = (
   [
-    // Out in the north-east corner past the gong, and between the PR board and the elevator, clear of
-    // the gong's front and the elevator doors.
-    [15, -9.8, 0],
+    // East of the elevator, clear of the board agents in front of the east wall, and west of it,
+    // clear of its doors.
+    [12.6, -8.8, -Math.PI / 2],
     [5.4, -9.8, 0],
     [-16.1, -9, Math.PI / 2],
     [-16.1, -3, Math.PI / 2],
@@ -159,8 +159,8 @@ export const BEANBAGS: DeskDef[] = (
     [12.2, -5.6, -Math.PI / 2],
     [12.2, 5.6, -Math.PI / 2],
     [-16.1, 3, Math.PI / 2],
-    // Clear of the board agents' kiosks, and of the floor in front of them.
-    [-13.2, -9.8, 0],
+    // Clear of the kitchen, and of the floor in front of the coffee machine.
+    [-9.8, -9.8, 0],
     [-12.6, 9.2, Math.PI / 2],
     [-5.4, -9.8, 0],
   ] as const
@@ -173,17 +173,15 @@ export const SEATS: DeskDef[] = [...DESKS, ...WING_DESKS, ...BEANBAGS];
 export type StationKind = 'issues' | 'pulls' | 'queue';
 
 /**
- * The board agents: a worker standing behind a little kiosk beside each of those boards (see
+ * The board agents: a worker standing behind a little kiosk in front of each of those boards (see
  * BOARDS), there for anyone to prompt about it. (x, z) is the kiosk. They face into the room, so at
- * rotY PI the worker stands on the wall side of it. Nobody hires them from the desks or the queue.
+ * rotY PI/2 the worker stands on the (east) wall side of it. Nobody hires them from the desks or the queue.
  */
 export const STATIONS: DeskDef[] = [
-  // Either side of the Issues board and the task queue's stack: the Issues agent on its north…
-  { id: 'station-issues', station: 'issues', x: FLOOR.maxX - 1.3, z: eastBay(1) - EAST_PANE / 2 - 0.45, rotY: Math.PI / 2, label: 'Issues board' },
-  // …the Queue agent on its south, in front of the pane between the stacks…
-  { id: 'station-queue', station: 'queue', x: FLOOR.maxX - 1.3, z: eastBay(1) + EAST_PANE / 2 + 0.55, rotY: Math.PI / 2, label: 'Task queue' },
-  // …and the PR agent north of the PR board and the services board's, across that pane from it.
-  { id: 'station-pulls', station: 'pulls', x: FLOOR.maxX - 1.3, z: eastBay(3) - EAST_PANE / 2 - 0.55, rotY: Math.PI / 2, label: 'PR board' },
+  // Each in front of its board, under it.
+  { id: 'station-issues', station: 'issues', x: FLOOR.maxX - 1.3, z: eastBay(0), rotY: Math.PI / 2, label: 'Issues board' },
+  { id: 'station-queue', station: 'queue', x: FLOOR.maxX - 1.3, z: eastBay(1), rotY: Math.PI / 2, label: 'Task queue' },
+  { id: 'station-pulls', station: 'pulls', x: FLOOR.maxX - 1.3, z: eastBay(2), rotY: Math.PI / 2, label: 'PR board' },
 ];
 /** A board agent's kiosk: its top, and how far behind its middle (toward the wall) the agent stands. */
 export const KIOSK = { width: 0.8, depth: 0.5, height: 0.55, stand: 0.55 } as const;
@@ -269,23 +267,23 @@ export function deskSeat(desk: DeskDef, offset = 0.85): { x: number; z: number }
   };
 }
 
-/** How big every wall board is (its frame a pane's width, 2:1 inside), and how high the middles of a stack's two hang. */
+/** How big every wall board is (its frame a pane's width, 2:1 inside), and how high the middle of the row hangs: over the heads of the board agents in front. */
 const BOARD_SIZE = { width: EAST_PANE - 0.4, height: (EAST_PANE - 0.4) / 2 } as const;
-const BOARD_ROWS = { bottom: 1.35, top: 1.35 + BOARD_SIZE.height + 0.75 } as const;
+export const BOARD_ROW_Y = 2.6;
 /** Wall boards. `rotY` is the way the board faces (0 = +z; the east wall's face -x, into the room). */
 export const BOARDS = {
-  // Two stacks of two on the east wall, north of the TV, the way work goes: the issues over the task
-  // queue they go onto, then the pull requests the workers make over the services they run, a pane
-  // of glass between the stacks. The first three have their board agent's kiosk beside them (see
-  // STATIONS). All are the same size (BOARD_SIZE), 2:1, which is what their faces are drawn for.
-  issues: { x: FLOOR.maxX - 0.08, y: BOARD_ROWS.top, z: eastBay(1), rotY: -Math.PI / 2, ...BOARD_SIZE, label: 'Issues' },
-  queue: { x: FLOOR.maxX - 0.08, y: BOARD_ROWS.bottom, z: eastBay(1), rotY: -Math.PI / 2, ...BOARD_SIZE, label: '📋 Task queue' },
-  pulls: { x: FLOOR.maxX - 0.08, y: BOARD_ROWS.top, z: eastBay(3), rotY: -Math.PI / 2, ...BOARD_SIZE, label: 'Pull Requests' },
-  services: { x: FLOOR.maxX - 0.08, y: BOARD_ROWS.bottom, z: eastBay(3), rotY: -Math.PI / 2, ...BOARD_SIZE, label: '🌐 Services' },
+  // One row along the east wall, a pane each, from the north corner to the TV, the way work goes:
+  // the issues, the task queue they go onto, the pull requests the workers make and the services
+  // they run. The first three have their board agent's kiosk in front of them (see STATIONS). All
+  // are the same size (BOARD_SIZE), 2:1, which is what their faces are drawn for.
+  issues: { x: FLOOR.maxX - 0.08, y: BOARD_ROW_Y, z: eastBay(0), rotY: -Math.PI / 2, ...BOARD_SIZE, label: 'Issues' },
+  queue: { x: FLOOR.maxX - 0.08, y: BOARD_ROW_Y, z: eastBay(1), rotY: -Math.PI / 2, ...BOARD_SIZE, label: '📋 Task queue' },
+  pulls: { x: FLOOR.maxX - 0.08, y: BOARD_ROW_Y, z: eastBay(2), rotY: -Math.PI / 2, ...BOARD_SIZE, label: 'Pull Requests' },
+  services: { x: FLOOR.maxX - 0.08, y: BOARD_ROW_Y, z: eastBay(3), rotY: -Math.PI / 2, ...BOARD_SIZE, label: '🌐 Services' },
 } as const;
 
-/** The big TV that shows whoever is screen sharing: on the east wall in the middle pane, behind the Togo, facing the couch across the lounge. 16:9, its bezel a pane wide. */
-export const TV = { x: FLOOR.maxX - 0.1, y: 2.2, z: eastBay(4), width: EAST_PANE - 0.3, height: ((EAST_PANE - 0.3) * 9) / 16 } as const;
+/** The big TV that shows whoever is screen sharing: on the east wall in the middle pane, at the end of the boards' row and behind the Togo, facing the couch across the lounge. 16:9, its bezel a pane wide. */
+export const TV = { x: FLOOR.maxX - 0.1, y: BOARD_ROW_Y, z: eastBay(4), width: EAST_PANE - 0.3, height: ((EAST_PANE - 0.3) * 9) / 16 } as const;
 /**
  * The monitor on the north wall, just east of the elevator, facing into the room: how busy the
  * office's machine is, and how many workers it runs of the most it takes.
