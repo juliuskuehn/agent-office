@@ -151,9 +151,9 @@ export const STATIONS: DeskDef[] = [
   // Between the north-west corner and the Issues board.
   { id: 'station-issues', station: 'issues', x: -16.9, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Issues board' },
   // Between the task queue and the PR board.
-  { id: 'station-pulls', station: 'pulls', x: -3.3, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'PR board' },
+  { id: 'station-pulls', station: 'pulls', x: -4.9, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'PR board' },
   // Between the Issues board and the task queue.
-  { id: 'station-queue', station: 'queue', x: -10.1, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Task queue' },
+  { id: 'station-queue', station: 'queue', x: -10.9, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Task queue' },
 ];
 /** A board agent's kiosk: its top, and how far behind its middle (toward the wall) the agent stands. */
 export const KIOSK = { width: 0.8, depth: 0.5, height: 0.55, stand: 0.55 } as const;
@@ -239,16 +239,19 @@ export function deskSeat(desk: DeskDef, offset = 0.85): { x: number; z: number }
   };
 }
 
+/** How big every wall board is. */
+const BOARD_SIZE = { width: 4.2, height: 2.1 } as const;
 /** Wall boards. `rotY` is the way the board faces (0 = +z, like the north-wall boards). */
 export const BOARDS = {
   // Side by side along the north wall, the way work goes: an issue goes on the task queue (the
   // whiteboard in the middle), and its worker's pull request comes out the other side, and the
   // services its workers run are last before the elevator. The first three have their board agent's
-  // kiosk just west of them (see STATIONS). All are 2:1, which is what their faces are drawn for.
-  issues: { x: -13.5, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 5, height: 2.5, label: 'Issues' },
-  queue: { x: -6.7, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 5, height: 2.5, label: '📋 Task queue' },
-  pulls: { x: 0.1, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 5, height: 2.5, label: 'Pull Requests' },
-  services: { x: 4.85, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 3.9, height: 1.95, label: '🌐 Services' },
+  // kiosk just west of them (see STATIONS). All are the same size (BOARD_SIZE), 2:1, which is what
+  // their faces are drawn for.
+  issues: { x: -13.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, ...BOARD_SIZE, label: 'Issues' },
+  queue: { x: -7.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, ...BOARD_SIZE, label: '📋 Task queue' },
+  pulls: { x: -1.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, ...BOARD_SIZE, label: 'Pull Requests' },
+  services: { x: 3.4, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, ...BOARD_SIZE, label: '🌐 Services' },
 } as const;
 
 /** The big TV on the east wall that shows whoever is screen sharing. */
@@ -264,11 +267,11 @@ export const JUKEBOX = { x: FLOOR.maxX - 0.42, y: 0.75, z: 5.4, width: 1.3, dept
 export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, height: 1.9 } as const;
 
 /**
- * The bookshelf of the project's docs (every Markdown file in it, see shared/docs.ts): against the
- * south wall between the middle window and the balcony doors, facing into the room (-z). `width`
+ * The bookshelf of the project's docs (every Markdown file in it, see shared/docs.ts): one long, low
+ * shelf against the south wall's glass, west of the balcony doors, facing into the room (-z). `width`
  * runs along the wall.
  */
-export const BOOKSHELF = { x: -6.5, z: FLOOR.maxZ - 0.21, width: 1.7, depth: 0.42, height: 2.3 } as const;
+export const BOOKSHELF = { x: -7.7, z: FLOOR.maxZ - 0.21, width: 3.6, depth: 0.4, height: 0.75 } as const;
 
 /**
  * The kitchen along the east wall's north end, facing into the room (world/kitchen.ts): the model at
