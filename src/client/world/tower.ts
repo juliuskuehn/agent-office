@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BALCONY, BALCONY_DOOR, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, FLOOR, ROOF_BAR, SLAB, STAGE, STOREY, STREET_Y, WALL_HEIGHT, WALL_T, WINDOWS, WING, wallColumns, wingMinZ, wingRowZ, type Opening, type Side } from '../../shared/layout';
+import { BALCONY, BALCONY_DOOR, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, FLOOR, ROOF_BAR, glassFront, SLAB, STAGE, STOREY, STREET_Y, WALL_HEIGHT, WALL_T, WINDOWS, WING, wallColumns, wingMinZ, wingRowZ, type Opening, type Side } from '../../shared/layout';
 import type { Collider } from './office';
 import { bulb, type NightParts } from './outside';
 import { mergeByMaterial, mesh, toon, toonUnique } from './toon';
@@ -25,9 +25,18 @@ export interface Tower {
   set(index: number, count: number, wings?: readonly number[]): void;
 }
 
-/** A window in each row of a back office, in the building's east wall (office.ts cuts the same ones). */
+/**
+ * The back office's glass fronts (office.ts cuts the same ones), floor to ceiling like the building's:
+ * its west side, its back (north) wall and its bit of the building's east wall, built out `level` rows.
+ */
 export function wingWindows(level: number): Opening[] {
-  return Array.from({ length: level }, (_, i) => ({ wall: 'east' as const, u: wingRowZ(i + 1), width: 2.4, y0: 1.1, y1: 3.3 }));
+  if (level <= 0) return [];
+  const back = wingMinZ(level);
+  return [
+    ...glassFront('west', back, FLOOR.minZ - WALL_T, []).map((o) => ({ ...o, plane: WING.minX - WALL_T / 2 })),
+    ...glassFront('north', WING.minX, FLOOR.maxX, []).map((o) => ({ ...o, plane: back - WALL_T / 2 })),
+    ...glassFront('east', back, FLOOR.minZ - WALL_T, []),
+  ];
 }
 
 /** Where the posts under a back office stand: at the back corners of each row. */
@@ -49,9 +58,15 @@ const FACES: Record<Side, { u0: number; u1: number; at: (u: number, y: number) =
 };
 
 /** A wall-built group (along x, outdoors toward +z) turned onto `side`, `u` along it. */
-function onFace(g: THREE.Object3D, side: Side, u: number): THREE.Object3D {
+function onFace(g: THREE.Object3D, side: Side, u: number, plane?: number): THREE.Object3D {
   const f = FACES[side];
   g.position.copy(f.at(u, 0));
+  // A wall of the back office's, not the building's own: out to its outside face.
+  if (plane !== undefined) {
+    const out = plane + (side === 'east' || side === 'south' ? 1 : -1) * (WALL_T / 2 + OFF);
+    if (side === 'east' || side === 'west') g.position.x = out;
+    else g.position.z = out;
+  }
   g.rotation.y = f.rotY;
   return g;
 }
@@ -138,7 +153,7 @@ export function buildTower(colliders: Collider[], night: NightParts): Tower {
     for (const sx of [-1, 1]) g.add(mesh(new THREE.BoxGeometry(F, h, 0.14), edge, sx * (w / 2 - F / 2), mid, -0.05, false));
     g.add(mesh(new THREE.BoxGeometry(F * (door ? 1 : 0.8), h - 2 * F, 0.08), edge, 0, mid, -0.05, false));
     if (!door) g.add(mesh(new THREE.BoxGeometry(w + 0.2, 0.06, 0.16), frame, 0, y0 + o.y0 - 0.03, 0.06, false));
-    parts.add(onFace(g, o.wall, o.u));
+    parts.add(onFace(g, o.wall, o.u, o.plane));
   };
 
   /** The balcony off a floor `y0` up: its deck, and a railing with glass in it round the three open sides. */
@@ -296,9 +311,10 @@ export function buildTower(colliders: Collider[], night: NightParts): Tower {
       piece(u, end, 0, WALL_HEIGHT);
     };
     const windows = wingWindows(level);
-    wall(back, B.minZ, [], (z) => [west - OFF, z], -Math.PI / 2);
-    wall(back, B.minZ, windows, (z) => [east + OFF, z], Math.PI / 2);
-    wall(west, east, [], (x) => [x, back - OFF], Math.PI);
+    const on = (side: Side) => windows.filter((o) => o.wall === side);
+    wall(back, B.minZ, on('west'), (z) => [west - OFF, z], -Math.PI / 2);
+    wall(back, B.minZ, on('east'), (z) => [east + OFF, z], Math.PI / 2);
+    wall(west, east, on('north'), (x) => [x, back - OFF], Math.PI);
     for (const o of windows) glazing(parts, o, y0, false);
     // Over (and under) the rows of it that the floor above's (and below's) back office doesn't cover.
     const flat = (from: number, y: number, up: boolean) => {

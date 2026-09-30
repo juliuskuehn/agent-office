@@ -18,7 +18,7 @@ export function fmtGb(bytes: number): string {
 }
 
 /**
- * The machine monitor on the west wall: how busy the CPU and memory are, with the last few minutes
+ * The machine monitor on the east wall: how busy the CPU and memory are, with the last few minutes
  * of each, and how many workers the office runs of the most it takes.
  */
 export class MachineTexture {
