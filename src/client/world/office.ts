@@ -21,6 +21,7 @@ import gunStoreUrl from '../models/curtain-gun-store.jpg?url';
 import treeUrl from '../models/curtain-tree.jpg?url';
 import splashUrl from '../models/curtain-splash.jpg?url';
 import meadowUrl from '../models/curtain-meadow.jpg?url';
+import snowUrl from '../models/curtain-snow.jpg?url';
 import { IMAC_SCALE, idleDisplay } from './laptop';
 import { IMAC_COLORS, imac, iphone, macMini } from './macs';
 import { buildDeskSigns, type DeskSigns } from './desksigns';
@@ -225,8 +226,17 @@ const OFFICE_FLOOR = { floor: RUG_PINK };
 const DESK_RUG = { color: '#d62828', radius: 4.4, star: { fill: '#161616', edge: '#8d9199' }, reach: 6.6 } as const;
 /** The east wall's curtains' greys, north to south (before the four boards, the TV, the machine's monitor and the window past it), which show till their pictures load; and the pictures printed all over them, taking turns. */
 const EAST_CURTAINS = ['#5f6368', '#9ea3a9', '#74797f', '#c3c6ca', '#686c72', '#adb1b6', '#83888e'] as const;
-const CURTAIN_PRINTS = [gunStoreUrl, treeUrl, splashUrl, meadowUrl] as const;
-/** The grey of the curtain before the board agents' room (the meadow's printed on it). */
+/** Each picture across two of them side by side, but the last, on its own. */
+const CURTAIN_PRINTS: CurtainPrint[] = [
+  { url: snowUrl, part: 0, of: 2 },
+  { url: snowUrl, part: 1, of: 2 },
+  { url: treeUrl, part: 0, of: 2 },
+  { url: treeUrl, part: 1, of: 2 },
+  { url: meadowUrl, part: 0, of: 2 },
+  { url: meadowUrl, part: 1, of: 2 },
+  { url: splashUrl },
+];
+/** The grey of the curtain before the board agents' room (the Gun Store's printed on it). */
 const AGENTS_CURTAIN = '#7b8086';
 /** The walls, their trim and every window's and door's frame, on every floor whatever its palette: one light grey. */
 const OFFICE_WALL = '#e8e8e8';
@@ -1268,12 +1278,20 @@ export function starRug(rx: number, rz: number, points = 14, colors: { fill: str
   return g;
 }
 
+/** A picture to print on a curtain, and which of how many curtains side by side it's spread over this one is (0 the leftmost, seen from the front). */
+export interface CurtainPrint {
+  url: string;
+  part?: number;
+  of?: number;
+}
+
 /**
- * What's printed on a curtain `width` by `height`: the picture at `url` all over it, filling it the way
- * CSS's object-fit: cover does (cut down to the curtain's shape, round its middle). Until it has
- * loaded, the cloth is just `color`.
+ * What's printed on a curtain `width` by `height`: the picture all over it, filling it the way CSS's
+ * object-fit: cover does (cut down to the shape, round its middle). Spread over `of` curtains side by
+ * side, it's fitted to all of them together, and this one gets its `part` of it. Until it has loaded,
+ * the cloth is just `color`.
  */
-function curtainPrint(width: number, height: number, color: string, url: string): THREE.CanvasTexture {
+function curtainPrint(width: number, height: number, color: string, { url, part = 0, of = 1 }: CurtainPrint): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = 768;
   c.height = Math.round((768 * height) / width);
@@ -1285,10 +1303,11 @@ function curtainPrint(width: number, height: number, color: string, url: string)
   tex.anisotropy = 4;
   const img = new Image();
   img.onload = () => {
-    const k = Math.max(c.width / img.width, c.height / img.height);
+    const all = c.width * of;
+    const k = Math.max(all / img.width, c.height / img.height);
     const w = img.width * k;
     const h = img.height * k;
-    g.drawImage(img, (c.width - w) / 2, (c.height - h) / 2, w, h);
+    g.drawImage(img, (all - w) / 2 - part * c.width, (c.height - h) / 2, w, h);
     tex.needsUpdate = true;
   };
   img.src = url;
@@ -1301,7 +1320,7 @@ function curtainPrint(width: number, height: number, color: string, url: string)
  * With `print`, a picture is printed all over it (see curtainPrint). `show(k)` draws
  * it: 0 shut, 1 gathered at either side, its folds (and the picture) bunched up.
  */
-export function buildCurtain(width: number, height: number, color = '#8c2130', pickable = false, print?: string): { group: THREE.Group; show(k: number): void } {
+export function buildCurtain(width: number, height: number, color = '#8c2130', pickable = false, print?: CurtainPrint): { group: THREE.Group; show(k: number): void } {
   const group = new THREE.Group();
   const cloth = toonUnique(print ? '#ffffff' : color);
   cloth.side = THREE.DoubleSide;
@@ -1602,7 +1621,7 @@ export function buildOffice(): Office {
   doors.push(exit.door);
   // The curtain across the way into the back office, where the board agents stand: it parts for
   // whoever comes up to it, like a door.
-  const curtain = buildCurtain(FLOOR.maxX - WING.minX, WALL_HEIGHT - 0.3, AGENTS_CURTAIN, false, meadowUrl);
+  const curtain = buildCurtain(FLOOR.maxX - WING.minX, WALL_HEIGHT - 0.3, AGENTS_CURTAIN, false, { url: gunStoreUrl });
   const curtainX = (WING.minX + FLOOR.maxX) / 2;
   curtain.group.position.set(curtainX, 0, FLOOR.minZ - WALL_T / 2);
   group.add(curtain.group);
@@ -1742,7 +1761,7 @@ export function buildOffice(): Office {
   const drapes: { want: number; open: number; show(k: number): void }[] = [];
   EAST_CURTAINS.forEach((color, i) => {
     const z = FLOOR.minZ + EAST_PANE * (i + 0.5);
-    const curtain = buildCurtain(EAST_PANE - 0.12, WALL_HEIGHT - 0.3, color, true, CURTAIN_PRINTS[i % CURTAIN_PRINTS.length]);
+    const curtain = buildCurtain(EAST_PANE - 0.12, WALL_HEIGHT - 0.3, color, true, CURTAIN_PRINTS[i]);
     curtain.group.position.set(FLOOR.maxX - 0.35, 0, z);
     curtain.group.rotation.y = -Math.PI / 2;
     curtain.group.userData.interact = { kind: 'curtain', curtain: i, x: FLOOR.maxX - 1.6, z, radius: 2.4 } satisfies Interactable;
