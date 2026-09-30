@@ -8,7 +8,7 @@
  * Everything goes through one master gain that Settings turns down or mutes. Voice chat doesn't, and
  * the jukebox has a volume of its own.
  */
-import { CABINET, DESKS, DJ_BOOTH, FLOOR, GONG, JUKEBOX, KITCHEN, WINDOWS as OPENINGS, inWing } from '../shared/layout';
+import { CABINET, DESKS, DJ_BOOTH, FLOOR, JUKEBOX, KITCHEN, WINDOWS as OPENINGS, inWing } from '../shared/layout';
 import type { GongWhy } from '../shared/protocol';
 import { STREAM } from '../shared/jukebox';
 import { TunePlayer } from './music';
@@ -45,7 +45,6 @@ const WINDOWS: Pos[] = OPENINGS.filter((o) => o.y0 < 2).map((o) =>
     : { x: o.wall === 'west' ? FLOOR.minX - 1.5 : FLOOR.maxX + 1.5, y: 2.4, z: o.u },
 );
 /** The middle of the gong's disc. */
-const GONG_AT: Pos = { x: GONG.x, y: GONG.height - 1.36, z: GONG.z };
 /** The arcade cabinet's speaker, under its screen. */
 const CABINET_AT: Pos = { x: CABINET.x - 0.2, y: 1.2, z: CABINET.z };
 /** A gong's overtones don't line up like a string's: [ratio to the lowest, loudness, seconds to die away]. */
@@ -1370,7 +1369,8 @@ export class OfficeSound {
     this.count(`gong.${why}`);
     // Someone banging it is the room; a merge is news for the whole floor (and from another tab too,
     // like the dings), so it carries further.
-    const at = this.hall ? (this.hall.gong ?? { x: this.listener.x, y: this.listener.y + 2, z: this.listener.z }) : GONG_AT;
+    // From the map's gong, or with none (the office has none), from over your head.
+    const at = this.hall?.gong ?? { x: this.listener.x, y: this.listener.y + 2, z: this.listener.z };
     const out = why === 'hit' ? this.panner(at, 4, 0.6) : this.panner(at, 8, 0.45);
     out.connect(why === 'hit' ? this.ambience : this.alerts);
     const t0 = ctx.currentTime + 0.03;

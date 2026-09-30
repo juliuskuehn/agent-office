@@ -4,7 +4,7 @@
 // An office floor built out into the back office (see WING) has more of it to get round: the office's
 // helpers take how many rows it's built out (`wing`), and each level gets a grid of its own.
 
-import { BALCONY, BALCONY_DOOR, BEANBAGS, BOOKSHELF, CABINET, DESK_SIZE, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, EXIT_STAIRS, FLOOR, GONG, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PARACHUTE, POLE, POLES, ROAD, STAIRS, STATIONS, WHITEBOARD, WING, builtDesks, plantsAt, wingLevel, wingMinZ, type DeskDef } from './layout.js';
+import { BALCONY, BALCONY_DOOR, BEANBAGS, BOOKSHELF, CABINET, DESK_SIZE, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PARACHUTE, POLE, POLES, ROAD, STAIRS, STATIONS, WHITEBOARD, WING, builtDesks, plantsAt, wingLevel, wingMinZ, type DeskDef } from './layout.js';
 
 
 export type Pt = [number, number];
@@ -62,8 +62,6 @@ function obstacles(wing: number): Obstacles {
   for (const x of [LOFT.minX + 0.15, (LOFT.minX + LOFT.maxX) / 2]) circles.push([x, LOFT.minZ + 0.15, 0.14]);
   rects.push([STAIRS.fromX, STAIRS.toX, STAIRS.minZ - 0.1, STAIRS.maxZ]);
   rects.push([ELEVATOR.x - ELEVATOR.width / 2, ELEVATOR.x + ELEVATOR.width / 2, FLOOR.minZ, ELEVATOR_FRONT]);
-  // The gong's frame, as office.ts puts it.
-  rects.push([GONG.x - GONG.width / 2 - 0.12, GONG.x + GONG.width / 2 + 0.3, GONG.z - 0.3, GONG.z + 0.3]);
   // The whiteboard on its wheels, as world/whiteboard.ts puts it.
   rects.push([WHITEBOARD.x - WHITEBOARD.width / 2 - 0.2, WHITEBOARD.x + WHITEBOARD.width / 2 + 0.2, WHITEBOARD.z - 0.48, WHITEBOARD.z + 0.48]);
   // The jukebox, against the east wall.

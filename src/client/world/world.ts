@@ -101,7 +101,6 @@ export function officeWorld(office: Office, upstairs: () => boolean, wing: () =>
     boardMeshes: office.boardMeshes,
     meetingBoard: office.meetingBoard,
     meetingSign: office.meetingSign,
-    gong: office.gong,
     get nav() {
       return officeNav(wing());
     },

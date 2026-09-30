@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, CABINET, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, GONG, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
+import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, CABINET, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
 import { wallFacing, type WallId, type WallRect } from '../../shared/decor';
 import { deskPoint } from '../../shared/nav';
 import { FLOOR_PALETTES, type FloorPalette } from '../../shared/floors';
@@ -9,7 +9,6 @@ import { buildScenic, type Scenic } from './scenic';
 import { mergeByMaterial, mesh, roundedBox, textPlane, toon, toonUnique } from './toon';
 import { palette, piece } from './models';
 import { buildElevator, type Elevator } from './elevator';
-import { buildGong, type Gong } from './gong';
 import { buildJukebox, type JukeboxView } from './jukebox';
 import { buildBookshelf } from './bookshelf';
 import { buildCabinet, type CabinetModel } from './cabinet';
@@ -17,10 +16,8 @@ import { buildWhiteboard, type WhiteboardStand } from './whiteboard';
 import { buildGreen, buildTee, type Green, type Tee } from './golf';
 import { buildStack, type Stack } from './stack';
 import { buildTower, wingWindows } from './tower';
-import { buildHoop, type HoopView } from './hoop';
 import { buildKitchen } from './kitchen';
 import { buildDeskSigns, type DeskSigns } from './desksigns';
-import { HOOP } from '../../shared/hoop';
 
 export interface Collider {
   minX: number;
@@ -103,8 +100,6 @@ export interface Office {
   cars: Fleet;
   /** The scenic loop off either end of the street, and everything along it. */
   scenic: Scenic;
-  /** The merge gong by the PR board. */
-  gong: Gong;
   jukebox: JukeboxView;
   /** The arcade cabinet in the lounge, where BLOCKFALL plays (ui/cabinet.ts). */
   cabinet: CabinetModel;
@@ -113,8 +108,6 @@ export interface Office {
   /** The golf tee on the balcony, and the hole across the street it's hit at. */
   tee: Tee;
   green: Green;
-  /** The basketball hoop on the west wall (the ball is main.ts's: see world/hoop.ts). */
-  hoop: HoopView;
   /** The ceiling, the floor, and the ladder and fire poles between the floors of the building. */
   stack: Stack;
   /** The back office through the north wall, as far as this floor's built out (see WING). */
@@ -164,7 +157,6 @@ const PALETTE = {
   wood: '#c98b5a',
   cork: '#d8a86a',
   chairs: ['#ff8a5b', '#5bc0eb', '#9bc53d', '#b388eb', '#ffb400', '#f7aef8'],
-  rugs: ['#bde0fe', '#ffd6a5', '#caffbf', '#ffc6ff'],
   plant: '#5fb760',
   plantDark: '#3f8f45',
   pot: '#e76f51',
@@ -206,20 +198,25 @@ function onWall(side: Side, u: number): { x: number; z: number; rotY: number } {
   }
 }
 
-/** Even planks in a floor's color: one shade throughout, with only the seams between them. */
-function paintPlanks(c: HTMLCanvasElement, p: FloorPalette) {
+/** The office's floor, on every floor whatever its palette: pale grey planks, and the seams between them. */
+const OFFICE_FLOOR = { floor: '#c4c7cc', seam: '#b0b4ba' };
+/** The big rug all the desks stand on. */
+const DESK_RUG = { color: '#f3b3c3', minX: -14.2, maxX: 2.2, minZ: -6.6, maxZ: 6.6 } as const;
+
+/** Even planks of one shade throughout, with only the seams between them. */
+function paintPlanks(c: HTMLCanvasElement, colors: { floor: string; seam: string }) {
   const g = c.getContext('2d')!;
-  g.fillStyle = p.floor;
+  g.fillStyle = colors.floor;
   g.fillRect(0, 0, 512, 512);
-  g.fillStyle = p.seam;
+  g.fillStyle = colors.seam;
   for (let row = 0; row < 8; row++) g.fillRect(0, row * 64, 512, 3);
 }
 
-function floorTexture(width = FLOOR.maxX - FLOOR.minX, depth = FLOOR.maxZ - FLOOR.minZ): THREE.CanvasTexture {
+function floorTexture(width = FLOOR.maxX - FLOOR.minX, depth = FLOOR.maxZ - FLOOR.minZ, colors = OFFICE_FLOOR): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 512;
-  paintPlanks(c, FLOOR_PALETTES[0]);
+  paintPlanks(c, colors);
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(width / 6, depth / 6);
@@ -546,7 +543,7 @@ function buildBalcony(group: THREE.Group, colliders: Collider[], interactables: 
   // Everything that doesn't move and isn't textured goes in here, merged at the end.
   const parts = new THREE.Group();
   parts.add(mesh(box(w, SLAB - 0.01, d), toon(PALETTE.wallTrim), cx, -SLAB / 2 - 0.005, cz));
-  const deck = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshToonMaterial({ map: floorTexture(w, d), color: '#d6a574', gradientMap: (toon('#fff') as THREE.MeshToonMaterial).gradientMap }));
+  const deck = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshToonMaterial({ map: floorTexture(w, d, FLOOR_PALETTES[0]), color: '#d6a574', gradientMap: (toon('#fff') as THREE.MeshToonMaterial).gradientMap }));
   deck.rotation.x = -Math.PI / 2;
   deck.position.set(cx, 0.002, cz);
   deck.receiveShadow = true;
@@ -939,7 +936,7 @@ function buildWing(group: THREE.Group, colliders: Collider[], interactables: Int
     const row = i + 1;
     const z = wingRowZ(row);
     const extras = new THREE.Group();
-    extras.add(mesh(roundedBox(3.4, 0.02, WING.row - 1, 0.5), toon(PALETTE.rugs[(row + 1) % PALETTE.rugs.length]), midX, 0.011, z, false));
+    extras.add(mesh(roundedBox(3.4, 0.02, WING.row - 1, 0.5), toon(DESK_RUG.color), midX, 0.011, z, false));
     const lamp = pendant(WALL_HEIGHT - 4.05);
     lamp.position.set(midX, 4.05, z);
     extras.add(lamp);
@@ -1122,19 +1119,14 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
   group.add(mesh(box(width - 0.3, 0.32, 0.03), trimMat, 0, height - 0.26, -depth / 2 + 0.06));
   // Little desk decorations. Which desk gets which stays as it is: the holiday present goes in whichever
   // back corner it leaves free (DESK_SPOTS in holiday.ts).
-  const deco = index % 3;
-  if (deco === 0) {
+  if (index % 2 === 0) {
     // In the chair's color.
     const mug = deskMug(PALETTE.chairs[index % 6]);
     mug.position.set(width / 2 - 0.25, height, -0.2);
     group.add(mug);
-  } else if (deco === 1) {
-    const p = plant('succulent');
-    p.position.set(-width / 2 + 0.25, height, -0.25);
-    group.add(p);
   } else {
     // Where the old three boxes stood, the desks with books taking turns with the arrangements.
-    const books = deskBooks(Math.floor(index / 3));
+    const books = deskBooks(Math.floor(index / 2));
     books.position.set(width / 2 - 0.26, height, -0.3);
     group.add(books);
   }
@@ -1298,12 +1290,11 @@ export function buildOffice(): Office {
   const fixtures: WallRect[] = [];
   const fixture = (wall: WallId, u: number, y: number, w: number, h: number) => fixtures.push({ wall, u0: u - w / 2, u1: u + w / 2, y0: y - h / 2, y1: y + h / 2 });
 
-  // What each floor paints its own way (see setLook): the walls, their trim, the planks.
-  const looks: Looks = { wall: toonUnique(PALETTE.wall), trim: toonUnique(PALETTE.wallTrim), planks: [] };
+  // What each floor paints its own way (see setLook): the walls and their trim.
+  const looks: Looks = { wall: toonUnique(PALETTE.wall), trim: toonUnique(PALETTE.wallTrim) };
 
   // Floor, and the ceiling, with the ways up and down to the other floors through them (see stack.ts).
   const floorTex = floorTexture();
-  looks.planks.push(floorTex);
   const floorMat = new THREE.MeshToonMaterial({ map: floorTex, gradientMap: (toon('#fff') as THREE.MeshToonMaterial).gradientMap });
   const stack = buildStack(colliders, floorMat);
   stack.set({ index: 0, count: 1 });
@@ -1312,16 +1303,9 @@ export function buildOffice(): Office {
   // The ladder and its sign, up the west wall.
   fixture('west', LADDER.z + 0.6, WALL_HEIGHT / 2, LADDER.width + 2.4, WALL_HEIGHT);
 
-  // Rugs under each desk cluster
-  [
-    [-10.5, -4],
-    [-1.5, -4],
-    [-10.5, 4],
-    [-1.5, 4],
-  ].forEach(([x, z], i) => {
-    const rug = mesh(roundedBox(6.2, 0.02, 4.6, 0.6), toon(PALETTE.rugs[i]), x, 0.011, z, false);
-    group.add(rug);
-  });
+  // One big rug under all the desks.
+  const r = DESK_RUG;
+  group.add(mesh(roundedBox(r.maxX - r.minX, 0.02, r.maxZ - r.minZ, 1), toon(r.color), (r.minX + r.maxX) / 2, 0.011, (r.minZ + r.maxZ) / 2, false));
 
   const night: NightParts = {
     bulbs: [],
@@ -1623,7 +1607,7 @@ export function buildOffice(): Office {
   const meeting = buildMeetingRoom(group, colliders, interactables, desks, doors, night);
   fixture('south', MEETING_BOARD.x, MEETING_BOARD.y, MEETING_BOARD.width + 0.4, MEETING_BOARD.height + 0.4);
 
-  // The elevator to the other floors, against the north wall between the PR board and the gong.
+  // The elevator to the other floors, against the north wall east of the PR board.
   const elevator = buildElevator();
   group.add(elevator.group);
   colliders.push(...elevator.colliders);
@@ -1637,18 +1621,7 @@ export function buildOffice(): Office {
   colliders.push(...garageLift.colliders);
   interactables.push(garageLift.interactable);
 
-  // The gong, just past the elevator from the PR board.
-  const gong = buildGong();
-  group.add(gong.group);
-  colliders.push(...gong.colliders);
-  interactables.push(gong.interactable);
-  fixture('north', GONG.x, (GONG.height + 0.3) / 2, GONG.width + 1.2, GONG.height + 0.3);
 
-  // The basketball hoop, at the south end of the west wall.
-  const hoop = buildHoop();
-  group.add(hoop.group);
-  colliders.push(...hoop.colliders);
-  fixture('west', HOOP.z, (HOOP.board.bottom - 0.6 + HOOP.board.top + 0.1) / 2, HOOP.board.width + 0.2, HOOP.board.top - HOOP.board.bottom + 0.7);
 
   // The whiteboard, out on the floor between the desks and the lounge.
   const whiteboard = buildWhiteboard();
@@ -1668,10 +1641,6 @@ export function buildOffice(): Office {
   const setLook = (p: FloorPalette) => {
     looks.wall.color.set(p.wall);
     looks.trim.color.set(p.trim);
-    for (const t of looks.planks) {
-      paintPlanks(t.image as HTMLCanvasElement, p);
-      t.needsUpdate = true;
-    }
   };
 
   const setLevel = (index: number, count: number, wings: readonly number[] = []) => {
@@ -1712,13 +1681,11 @@ export function buildOffice(): Office {
     }
     elevator.update(dt);
     garageLift.update(dt);
-    gong.update(dt);
     green.update(t);
     scenic.update(t);
-    hoop.update(dt);
   };
 
-  return { group, colliders, interactables, desks, setBeanbags, boardMeshes, tvScreen, bossScreen, machineScreen, meetingBoard: meeting.board, meetingSign: meeting.sign, fixtures: () => fixtures, elevator, garageLift, cars, scenic, gong, jukebox, cabinet, whiteboard, tee, green, hoop, stack, wing, setWing, signs, setProjectName, setLook, setLevel, night, plants, update };
+  return { group, colliders, interactables, desks, setBeanbags, boardMeshes, tvScreen, bossScreen, machineScreen, meetingBoard: meeting.board, meetingSign: meeting.sign, fixtures: () => fixtures, elevator, garageLift, cars, scenic, jukebox, cabinet, whiteboard, tee, green, stack, wing, setWing, signs, setProjectName, setLook, setLevel, night, plants, update };
 }
 
 /** A chair at the meeting table, with its laptop on the table in front of it. */
@@ -1882,11 +1849,10 @@ function buildMeetingRoom(group: THREE.Group, colliders: Collider[], interactabl
   return { board: face, sign };
 }
 
-/** The materials and textures a floor paints in its own colors. */
+/** The materials a floor paints in its own colors. */
 interface Looks {
   wall: THREE.MeshToonMaterial;
   trim: THREE.MeshToonMaterial;
-  planks: THREE.CanvasTexture[];
 }
 
 /**
@@ -1910,7 +1876,6 @@ function buildLoft(group: THREE.Group, colliders: Collider[], interactables: Int
   // Floor slab, planked like downstairs, with a trim fascia you see from below.
   group.add(mesh(box(w, SLAB, d), trimMat, cx, floorY - SLAB / 2, cz));
   const planks = floorTexture(w, d);
-  looks.planks.push(planks);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshToonMaterial({ map: planks, gradientMap: (toon('#fff') as THREE.MeshToonMaterial).gradientMap }));
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(cx, floorY + 0.005, cz);
@@ -2059,18 +2024,6 @@ function buildLoft(group: THREE.Group, colliders: Collider[], interactables: Int
   scope.userData.interact = telescope;
   interactables.push(telescope);
   colliders.push({ minX: minX + 0.65, maxX: minX + 1.15, minZ: minZ + 0.65, maxZ: minZ + 1.15, bottom: floorY, top: floorY + 1.3 });
-
-  for (const [i, [px, pz, s]] of [
-    [maxX - 0.6, minZ + 0.6, 1],
-    [maxX - 0.6, maxZ - 0.6, 1.2],
-  ].entries()) {
-    // Starting past the monstera, which spreads too wide for a corner this tight.
-    const p = plant(floorPlant(i + 1), s);
-    p.position.set(px, floorY, pz);
-    group.add(p);
-    const r = 0.3 * s;
-    colliders.push({ minX: px - r, maxX: px + r, minZ: pz - r, maxZ: pz + r, bottom: floorY, top: floorY + 0.5 * s });
-  }
 
   const lamp = pendant();
   lamp.position.set(deskX, roofY - 0.4, cz);
