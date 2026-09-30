@@ -17,7 +17,7 @@ import { buildGreen, buildTee, type Green, type Tee } from './golf';
 import { buildStack, type Stack } from './stack';
 import { buildTower, wingWindows } from './tower';
 import { buildKitchen } from './kitchen';
-import { idleDisplay } from './laptop';
+import { IMAC_SCALE, idleDisplay } from './laptop';
 import { IMAC_COLORS, imac, iphone, macMini } from './macs';
 import { buildDeskSigns, type DeskSigns } from './desksigns';
 import { TYPEFACE, WEIGHT } from '../typeface';
@@ -72,8 +72,10 @@ export interface DeskView {
   vacancy: THREE.Group;
   /** How high the vacancy marker floats. */
   vacancyY: number;
-  /** A place at the round table's display, switched off, for while no worker's own is in the laptop anchor. */
+  /** A place at the round table's display or iMac, switched off, for while no worker's own is in the laptop anchor. */
   idle?: THREE.Object3D;
+  /** At a place with an iMac rather than a studio display: which of IMAC_COLORS it is. */
+  imac?: number;
 }
 
 export interface Office {
@@ -209,8 +211,8 @@ function onWall(side: Side, u: number, plane?: number): { x: number; z: number; 
 const RUG_PINK = '#ffc6ff';
 /** The office's floor, on every floor whatever its palette: the rugs' pink all over, without seams. */
 const OFFICE_FLOOR = { floor: RUG_PINK };
-/** The rug the round table stands on, its chairs and all: a black starburst (`star`); `color` is the back office's. */
-const DESK_RUG = { color: '#d62828', radius: 4.4, star: { fill: '#161616', edge: '#050505' } } as const;
+/** The rug the round table stands on, its chairs and all: a black starburst with a grey edge (`star`), `reach` to its spikes' tips; `color` is the back office's. */
+const DESK_RUG = { color: '#d62828', radius: 4.4, star: { fill: '#161616', edge: '#8d9199' }, reach: 6.6 } as const;
 /** The walls, their trim and every window's and door's frame, on every floor whatever its palette: one light grey. */
 const OFFICE_WALL = '#e8e8e8';
 
@@ -1151,8 +1153,8 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
     phone.rotation.y = -0.4 + (index % 3) * 0.3;
     group.add(phone);
   }
-  // At a round table, the Mac mini the display runs off, behind the mug or the phone.
-  if (def.table) {
+  // At a round table, the Mac mini a studio display runs off, behind the mug or the phone.
+  if (def.table && index % 2 === 0) {
     const mini = macMini(1.3);
     mini.position.set(decoX + 0.02, height, decoZ - 0.24);
     mini.rotation.y = 0.15;
@@ -1164,10 +1166,12 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
   laptopAnchor.position.set(0, height, -0.06);
   laptopAnchor.scale.setScalar(def.table ? 1.1 : 1.3);
   group.add(laptopAnchor);
-  // At a round table there's always a display: switched off, until a worker's own takes its place.
+  // At a round table there's always a computer: every other place an iMac in its color, the rest a
+  // studio display (with the Mac mini it runs off, below); switched off, until a worker's own takes its place.
+  const imacColor = def.table && index % 2 === 1 ? Math.floor(index / 2) % 4 : undefined;
   let idle: THREE.Object3D | undefined;
   if (def.table) {
-    idle = idleDisplay();
+    idle = imacColor === undefined ? idleDisplay() : imac(IMAC_COLORS[imacColor], IMAC_SCALE);
     idle.position.copy(laptopAnchor.position);
     idle.scale.copy(laptopAnchor.scale);
     group.add(idle);
@@ -1197,7 +1201,7 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
   const vacancy = vacancyMarker(vacancyY, false);
   group.add(vacancy);
 
-  return { def, group, laptopAnchor, seatAnchor, stage, chair: ch, vacancy, vacancyY, idle };
+  return { def, group, laptopAnchor, seatAnchor, stage, chair: ch, vacancy, vacancyY, idle, imac: imacColor };
 }
 
 /** A round table for four (see ROUND_TABLES): a round top on a pedestal, standing on a round foot. */
@@ -1208,15 +1212,7 @@ export function buildRoundTable(at: { x: number; z: number }): THREE.Group {
   const steel = toon('#8d99ae');
   g.add(mesh(new THREE.CylinderGeometry(0.09, 0.09, height - 0.1, 16), steel, 0, (height - 0.07) / 2, 0));
   g.add(mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.04, 32), steel, 0, 0.02, 0));
-  // In the middle of it, four iMacs back to back in their colors, facing out between the places,
-  // and a couple of iPhones left lying by them.
-  for (let i = 0; i < 4; i++) {
-    const a = Math.PI / ROUND_TABLE.places + (i * Math.PI) / 2;
-    const mac = imac(IMAC_COLORS[i], 1.45);
-    mac.position.set(Math.sin(a) * 0.42, height, Math.cos(a) * 0.42);
-    mac.rotation.y = a;
-    g.add(mac);
-  }
+  // A couple of iPhones left lying in the middle.
   for (const [a, faceDown, color] of [
     [0.5, true, '#c9b8a6'],
     [2.9, false, '#3b3d42'],
@@ -1518,7 +1514,7 @@ export function buildOffice(): Office {
 
   // One big starburst rug under the round table and all its chairs, its hollows clear of them.
   for (const t of ROUND_TABLES) {
-    const rug = starRug(DESK_RUG.radius + 0.9, DESK_RUG.radius + 0.9, 16, DESK_RUG.star);
+    const rug = starRug(DESK_RUG.reach, DESK_RUG.reach, 18, DESK_RUG.star);
     rug.position.set(t.x, 0, t.z);
     group.add(rug);
   }

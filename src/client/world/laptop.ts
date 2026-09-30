@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { FLAG_BOLD, FLAG_DIM, FLAG_INVERSE, RGB_FLAG, type Run } from '../../shared/protocol';
 import { mesh, roundedBox, toon } from './toon';
 import { TERM_THEME } from '../ui/termtheme';
+import { IMAC, IMAC_COLORS, imac } from './macs';
 
 
 const BASE16 = [
@@ -152,6 +153,9 @@ function displayParts(root: THREE.Group, lid: THREE.Group) {
   root.add(mesh(new THREE.BoxGeometry(0.4, 0.002, 0.11), toon('#f4f5f7'), 0, 0.013, 0.2, false));
 }
 
+/** How much bigger than life an iMac at the round table is, to stand as big as a studio display. */
+export const IMAC_SCALE = 1.45;
+
 /** A studio display with nobody at it: switched off, its glass dark, stood where a worker's would be (see Laptop). */
 export function idleDisplay(): THREE.Group {
   const root = new THREE.Group();
@@ -163,7 +167,7 @@ export function idleDisplay(): THREE.Group {
 }
 
 /** What a worker works at: a laptop, the castle's tome, or a studio display (see Laptop). */
-export type DeviceStyle = 'laptop' | 'tome' | 'display';
+export type DeviceStyle = 'laptop' | 'tome' | 'display' | 'imac';
 
 export class Laptop {
   readonly root = new THREE.Group();
@@ -184,7 +188,8 @@ export class Laptop {
    * shuts like the laptop. `display`: a studio display on its stand, with a keyboard in front, for
    * the office's round table; rather than open and shut, it wakes up and goes dark.
    */
-  constructor(private readonly style: DeviceStyle = 'laptop') {
+  /** `imacColor`: which of IMAC_COLORS an `imac` is. */
+  constructor(private readonly style: DeviceStyle = 'laptop', imacColor = 0) {
     this.canvas.width = 1024;
     this.canvas.height = 680;
     this.ctx = this.canvas.getContext('2d')!;
@@ -228,6 +233,13 @@ export class Laptop {
       this.root.add(mesh(new THREE.BoxGeometry(0.03, 0.004, 0.16), toon('#9b1c1c'), 0.2, 0.06, 0.28, false));
     } else if (style === 'display') {
       displayParts(this.root, this.lid);
+    } else if (style === 'imac') {
+      // The iMac, the terminal on its screen, where its wallpaper is.
+      this.root.add(imac(IMAC_COLORS[imacColor % IMAC_COLORS.length], IMAC_SCALE));
+      this.lid.position.set(0, IMAC.y * IMAC_SCALE, IMAC.z * IMAC_SCALE);
+      this.lid.scale.setScalar(IMAC_SCALE);
+      screen.position.set(0, IMAC.chin + (IMAC.H - IMAC.chin) / 2, IMAC.T / 2 + 0.0015);
+      screen.scale.set((IMAC.W - 0.03) / 0.72, (IMAC.H - IMAC.chin - 0.03) / 0.46, 1);
     } else {
       // A MacBook Pro-ish laptop: space grey all over, black keys, and black glass round the screen.
       const shell = toon('#7d8189');
@@ -275,9 +287,9 @@ export class Laptop {
   private setLid(open: number) {
     this.openT = open;
     const e = 1 - Math.pow(1 - open, 3);
-    // A display stands where it is, tipped back a touch, and lights up.
-    if (this.style === 'display') {
-      this.lid.rotation.x = -0.08;
+    // A display (or an iMac) stands where it is, tipped back a touch, and lights up.
+    if (this.style === 'display' || this.style === 'imac') {
+      this.lid.rotation.x = this.style === 'imac' ? IMAC.tilt : -0.08;
       this.screenMat.color.setScalar(e);
       return;
     }

@@ -49,12 +49,13 @@ function wallpaper(color: string): THREE.MeshBasicMaterial {
  * A 24-inch iMac, `scale` times life size: a thin slab in its color at the back, white bezel round
  * the screen and the paler chin under it in front, on a stand like a studio display's.
  */
+/** The iMac's slab (width, height, thickness, and its chin's height), and where on its stand the slab stands, tipped back. */
+export const IMAC = { W: 0.547, H: 0.418, T: 0.0115, chin: 0.09, y: 0.075, z: -0.07, tilt: -0.06 } as const;
+
 export function imac(colors: (typeof IMAC_COLORS)[number], scale = 1): THREE.Group {
   const g = new THREE.Group();
   const back = toon(colors.back);
-  const W = 0.547;
-  const H = 0.418;
-  const T = 0.0115;
+  const { W, H, T } = IMAC;
   // The stand: a flat foot and a sloping plate up to the slab's back.
   g.add(mesh(roundedBox(0.15, 0.008, 0.14, 0.03), back, 0, 0.004, -0.05));
   const arm = mesh(roundedBox(0.14, 0.012, 0.26, 0.03), back, 0, 0.12, -0.1);
@@ -62,13 +63,13 @@ export function imac(colors: (typeof IMAC_COLORS)[number], scale = 1): THREE.Gro
   g.add(arm);
   // The slab, stood up, a touch back from upright.
   const slab = new THREE.Group();
-  slab.position.set(0, 0.075, -0.07);
-  slab.rotation.x = -0.06;
+  slab.position.set(0, IMAC.y, IMAC.z);
+  slab.rotation.x = IMAC.tilt;
   const body = mesh(roundedBox(W, T, H, 0.015), back, 0, H / 2, 0);
   body.rotation.x = Math.PI / 2;
   slab.add(body);
   const front = T / 2 + 0.0005;
-  const chinH = 0.09;
+  const chinH = IMAC.chin;
   slab.add(mesh(new THREE.PlaneGeometry(W - 0.004, chinH), toon(colors.chin), 0, chinH / 2 + 0.002, front, false));
   slab.add(mesh(new THREE.PlaneGeometry(W - 0.004, H - chinH - 0.004), toon('#f4f4f2'), 0, chinH + (H - chinH) / 2, front, false));
   slab.add(mesh(new THREE.PlaneGeometry(W - 0.03, H - chinH - 0.03), wallpaper(colors.back), 0, chinH + (H - chinH) / 2, front + 0.0005, false));
