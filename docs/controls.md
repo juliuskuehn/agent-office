@@ -27,7 +27,7 @@ Back to the [README](../README.md).
 | V | Join voice; in voice, hold to talk (you're muted when you let go) |
 | M | Mute / unmute in voice |
 | Tab | The ☰ menu: every window, and what shows on screen |
-| F9 | Try the San Andreas look: a warm smoggy PS2-style filter, and a few people hanging about the office (again to switch it off; `?sa` on the address turns it on too) |
+| F9 | Try the San Andreas look: a dim, grimy PS2-style filter, the camera over your shoulder, a GTA-style HUD with a radar, a crowd at the kitchen's bar, and everyone in a grown-up body dressed for the club (again to switch it off; `?sa` on the address turns it on too) |
 | Esc | Close any window (a terminal too) and get back to looking around |
 | Ctrl + [ | Send Esc to a terminal instead, to close a menu like Claude's `/skills` or interrupt Claude. **⎋ Esc** in the terminal's header does the same |
 

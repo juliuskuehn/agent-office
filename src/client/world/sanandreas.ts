@@ -1,12 +1,62 @@
 import * as THREE from 'three';
+// The sky's patch of every lit material goes first: the grime below builds on it (its vSkyWorld).
+import './sky';
 
 /**
  * A test of a look like an old PS2 game in the smog of a sunny city (think San Andreas): turned on with
  * `?sa` on the address, off with `?sa=0`, and F9 flips it (remembered on this browser). The frame is
  * drawn small, a little over half size and without smoothing its edges, then blended into what was
  * on the screen a moment ago, so things moving leave trails. On its way to the screen it gets a
- * warm, washed-out orange-brown haze, faded blacks, soft glowing lights, grain and dark corners.
+ * warm, dim, reddish-brown haze, soft glowing lights, grain and dark corners. And everything lit gets
+ * grimy: stains and grit over every surface, from its place in the world (see GRIME), like the
+ * dirty textures of those games.
  */
+
+/** 0 or 1: the grime's on (see saGrime). One uniform, shared by every lit material. */
+const grime = { value: 0 };
+
+export function saGrime(on: boolean) {
+  grime.value = on ? 1 : 0;
+}
+
+const GRIME_PARS = /* glsl */ `
+uniform float saGrime;
+float saHash( vec3 p ) {
+  p = fract( p * 0.3183099 + 0.1 );
+  p *= 17.0;
+  return fract( p.x * p.y * p.z * ( p.x + p.y + p.z ) );
+}
+float saNoise( vec3 x ) {
+  vec3 i = floor( x );
+  vec3 f = fract( x );
+  f = f * f * ( 3.0 - 2.0 * f );
+  return mix(
+    mix( mix( saHash( i ), saHash( i + vec3( 1, 0, 0 ) ), f.x ), mix( saHash( i + vec3( 0, 1, 0 ) ), saHash( i + vec3( 1, 1, 0 ) ), f.x ), f.y ),
+    mix( mix( saHash( i + vec3( 0, 0, 1 ) ), saHash( i + vec3( 1, 0, 1 ) ), f.x ), mix( saHash( i + vec3( 0, 1, 1 ) ), saHash( i + vec3( 1, 1, 1 ) ), f.x ), f.y ),
+    f.z );
+}
+`;
+
+/** Big soft stains, smaller blotches and fine grit, darkening the surface and browning it. */
+const GRIME = /* glsl */ `
+if ( saGrime > 0.0 ) {
+  vec3 gp = vSkyWorld;
+  float stain = saNoise( gp * 0.55 ) * 0.5 + saNoise( gp * 1.9 ) * 0.3 + saNoise( gp * 6.5 ) * 0.2;
+  float dirt = smoothstep( 0.4, 0.85, stain );
+  float grit = saNoise( gp * 42.0 ) * 0.6 + saNoise( gp * 110.0 ) * 0.4;
+  material.diffuseColor *= 1.0 - saGrime * ( 0.42 * dirt + 0.22 * grit );
+  material.diffuseColor = mix( material.diffuseColor, material.diffuseColor * vec3( 1.05, 0.86, 0.7 ), saGrime * ( 0.35 + 0.5 * dirt ) );
+}
+`;
+
+// On top of the sky's patch (sky.ts), for every lit material: the grime, just before the lights.
+const skyPatch = THREE.Material.prototype.onBeforeCompile;
+THREE.Material.prototype.onBeforeCompile = function (shader, renderer) {
+  skyPatch.call(this, shader, renderer);
+  if (!shader.fragmentShader.includes('vSkyWorld') || !shader.fragmentShader.includes('#include <lights_fragment_begin>')) return;
+  shader.uniforms.saGrime = grime;
+  shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>\n${GRIME_PARS}`).replace('#include <lights_fragment_begin>', `${GRIME}\n#include <lights_fragment_begin>`);
+};
 
 const BLEND = /* glsl */ `
 uniform sampler2D frame;
@@ -46,18 +96,17 @@ void main() {
   #include <tonemapping_fragment>
   vec3 col = toDisplay( gl_FragColor.rgb );
 
-  // Washed out and warm: less color, toward an orange-brown, the blacks faded up to a brown.
+  // Dim and warm: less color, toward a reddish brown, darker, with more contrast and the blacks a brown.
   float lum = dot( col, vec3( 0.299, 0.587, 0.114 ) );
-  col = mix( vec3( lum ), col, 0.78 );
-  col *= vec3( 1.1, 0.97, 0.76 );
-  col = mix( col, vec3( 0.93, 0.74, 0.5 ), 0.1 * smoothstep( 0.3, 1.0, lum ) );
-  col = vec3( 0.075, 0.05, 0.03 ) + col * 0.93;
-  col = ( col - 0.5 ) * 1.07 + 0.5;
+  col = mix( vec3( lum ), col, 0.8 );
+  col *= vec3( 1.04, 0.87, 0.8 ) * 0.86;
+  col = ( col - 0.45 ) * 1.2 + 0.45;
+  col = vec3( 0.05, 0.025, 0.02 ) + col * 0.95;
 
   // Grain, and darker toward the corners.
   col += ( hash( vUv * 731.0 + fract( time * 7.3 ) * 91.0 ) - 0.5 ) * 0.045;
   vec2 c = vUv - 0.5;
-  col *= 1.0 - smoothstep( 0.18, 0.75, dot( c, c ) ) * 0.45;
+  col *= 1.0 - smoothstep( 0.12, 0.7, dot( c, c ) ) * 0.55;
 
   gl_FragColor = vec4( toLinear( clamp( col, 0.0, 1.0 ) ), 1.0 );
   #include <colorspace_fragment>
