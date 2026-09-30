@@ -4,7 +4,7 @@ import { toon } from './toon';
 import { KITCHEN } from '../../shared/layout';
 import type { Collider, Interactable } from './office';
 
-// The kitchen along the east wall's north end (see KITCHEN), modelled in Blender (blender/scripts/build_kitchen.py): a
+// The kitchen along the north wall's west end (see KITCHEN), modelled in Blender (blender/scripts/build_kitchen.py): a
 // counter with a wooden top and a sink under the window, a chunky espresso machine (E at it pours you
 // a cup, see main.ts) and a round-shouldered retro fridge with notes stuck on it.
 
