@@ -5,10 +5,10 @@
 import { BALCONY, FLOOR, LOFT, WALL_HEIGHT } from './layout.js';
 
 /**
- * The hoop, on the west wall between the exit door and the kitchen, facing into the room (+x).
+ * The hoop, on the west wall at its south end, past the services board, facing into the room (+x).
  * `face` is the backboard's front, `rim` the middle of the ring (`r` to the middle of its tube).
  */
-const HOOP_Z = 10.1;
+const HOOP_Z = 11.95;
 const HOOP_FACE = FLOOR.minX + 0.62;
 export const HOOP = {
   z: HOOP_Z,
@@ -25,9 +25,9 @@ export const BALL = {
   r: 0.12,
   /**
    * Where the ball waits when nobody has it (and where it comes back to): on the floor by the hoop,
-   * on the side away from the coffee machine, so walking up to it doesn't pour you a coffee.
+   * on the side away from the services board, so walking up to it doesn't open the board.
    */
-  home: { x: HOOP.face + 0.7, z: HOOP.z - 0.8 },
+  home: { x: HOOP.face + 0.7, z: HOOP.z + 0.7 },
   /** The fastest anyone throws it, in m/s. */
   maxSpeed: 16,
 } as const;

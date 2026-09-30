@@ -243,8 +243,9 @@ export const BOARDS = {
   issues: { x: -11.7, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: 'Issues' },
   queue: { x: -3.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '📋 Task queue' },
   pulls: { x: 3.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: 'Pull Requests' },
-  // East wall, north of the lounge TV.
-  services: { x: FLOOR.maxX - 0.08, y: 2.1, z: -8.2, rotY: -Math.PI / 2, width: 6, height: 3, label: '🌐 Services' },
+  // West wall, between the exit door and the basketball hoop: smaller than the others, but the same
+  // 2:1 shape, which is what its chalkboard is drawn for.
+  services: { x: FLOOR.minX + 0.08, y: 2.1, z: 9.3, rotY: Math.PI / 2, width: 3.9, height: 1.95, label: '🌐 Services' },
 } as const;
 
 /** The big TV on the east wall that shows whoever is screen sharing. */
@@ -267,6 +268,24 @@ export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, 
  */
 export const BOOKSHELF = { x: -6.5, z: FLOOR.maxZ - 0.21, width: 1.7, depth: 0.42, height: 2.3 } as const;
 
+/**
+ * The kitchen along the east wall's north end, facing into the room (world/kitchen.ts): the model at
+ * (x, z) turned by `rotY`, its counter with the coffee machine on it running south from the fridge in
+ * the north-east corner. `counter` and `fridge` are what they take up, `machine` and `fridgeAt` where
+ * the machine and the fridge stand (their sounds come from there), and `pour` where you stand to get a
+ * coffee.
+ */
+export const KITCHEN = {
+  x: 17.2,
+  z: -9.2,
+  rotY: -Math.PI / 2,
+  counter: { minX: 16.7, maxX: 17.7, minZ: -11.7, maxZ: -6.7, top: 1.03 },
+  fridge: { minX: 16.7, maxX: 17.7, minZ: -12.95, maxZ: -11.85, top: 2.2 },
+  machine: { x: 17.2, z: -8 },
+  fridgeAt: { x: 17.2, z: -12.4 },
+  pour: { x: 15.9, z: -8 },
+} as const;
+
 export const SPAWN = { x: 8, z: 7 } as const;
 
 /** The gong: on the north wall just past the elevator from the PR board, facing into the room. It rings when a PR merges. */
@@ -275,9 +294,8 @@ export const GONG = { x: 11.8, z: FLOOR.minZ + 0.75, width: 1.9, height: 2.45 } 
 /** Potted plants around the room: where each stands, and how big it is. */
 export const PLANTS: readonly (readonly [x: number, z: number, scale: number])[] = [
   [-17.2, -12.2, 1.4],
-  [17.2, -12.2, 1.5],
   [17.2, 12.2, 1.3],
-  [-17.2, 8.5, 1.2],
+  [-13.5, 12.2, 1.2],
   [14.2, -12.2, 1.1],
   [-6, 0, 1],
   [3.5, 0, 0.9],

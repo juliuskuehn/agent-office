@@ -8,7 +8,7 @@
  * Everything goes through one master gain that Settings turns down or mutes. Voice chat doesn't, and
  * the jukebox has a volume of its own.
  */
-import { CABINET, DESKS, DJ_BOOTH, FLOOR, GONG, JUKEBOX, WINDOWS as OPENINGS, inWing } from '../shared/layout';
+import { CABINET, DESKS, DJ_BOOTH, FLOOR, GONG, JUKEBOX, KITCHEN, WINDOWS as OPENINGS, inWing } from '../shared/layout';
 import type { GongWhy } from '../shared/protocol';
 import { STREAM } from '../shared/jukebox';
 import { TunePlayer } from './music';
@@ -35,9 +35,9 @@ export interface Listener extends Pos {
   fz: number;
 }
 
-// The kitchen props (kitchen.ts puts the kitchen at x -14.5, z 12.2).
-const COFFEE_MACHINE: Pos = { x: -15.7, y: 1.4, z: 12.2 };
-const FRIDGE: Pos = { x: -11.3, y: 1.1, z: 12.2 };
+// The kitchen props (see KITCHEN).
+const COFFEE_MACHINE: Pos = { x: KITCHEN.machine.x, y: 1.4, z: KITCHEN.machine.z };
+const FRIDGE: Pos = { x: KITCHEN.fridgeAt.x, y: 1.1, z: KITCHEN.fridgeAt.z };
 /** Just outside the office's windows (not the loft's). */
 const WINDOWS: Pos[] = OPENINGS.filter((o) => o.y0 < 2).map((o) =>
   o.wall === 'south' || o.wall === 'north'
