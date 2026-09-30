@@ -12,6 +12,7 @@
 
 import * as THREE from 'three';
 import { DESKS, ROUND_TABLES } from '../../shared/layout';
+import { buildBookshelf } from '../world/bookshelf';
 import { buildCabinet } from '../world/cabinet';
 import { supercar } from '../world/cars';
 import { buildGong } from '../world/gong';
@@ -42,6 +43,13 @@ const SHOW: Record<string, () => Shown> = {
     return { object: g.group, update: (dt) => g.update(dt) };
   },
   cabinet: () => ({ object: buildCabinet().group }),
+  // Built where the office stands it, so brought back to the middle.
+  bookshelf: () => {
+    const shelf = buildBookshelf().group;
+    shelf.position.set(0, 0, 0);
+    shelf.rotation.y = 0;
+    return { object: shelf };
+  },
   round_table: () => {
     // The office's round table as it is with every place taken: each desk, its chair turned in and its display on.
     const object = new THREE.Group();

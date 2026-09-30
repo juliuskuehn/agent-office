@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, CABINET, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, ROUND_TABLE, ROUND_TABLES, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
+import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, ROUND_TABLE, ROUND_TABLES, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
 import { wallFacing, type WallId, type WallRect } from '../../shared/decor';
 import { deskPoint } from '../../shared/nav';
 import { FLOOR_PALETTES, type FloorPalette } from '../../shared/floors';
@@ -1562,11 +1562,9 @@ export function buildOffice(): Office {
   colliders.push(jukebox.collider);
   interactables.push(jukebox.interactable);
   fixture('east', JUKEBOX.z, JUKEBOX.height / 2, JUKEBOX.width + 0.1, JUKEBOX.height);
+  // The arcade cabinet (BLOCKFALL) isn't in the room any more: it's built, for its screen, which
+  // ui/cabinet.ts draws on, but not put up, so nobody bumps into it or plays.
   const cabinet = buildCabinet();
-  group.add(cabinet.group);
-  colliders.push(cabinet.collider);
-  interactables.push(cabinet.interactable);
-  fixture('east', CABINET.z, CABINET.height / 2, CABINET.width + 0.1, CABINET.height);
 
   // The bookshelf of the project's docs, on the south wall between the middle window and the balcony doors.
   const shelf = buildBookshelf();
@@ -1817,11 +1815,6 @@ function buildMeetingRoom(group: THREE.Group, colliders: Collider[], interactabl
       for (const [leaf, x0] of leaves) leaf.position.x = x0 + Math.sign(x0 - dx) * e * (half - 0.06);
     },
   });
-  const label = textPlane('🤝 Meeting room', { bg: '#2b2d42', color: '#fffaf3', size: 56, border: '#fffaf3' });
-  label.scale.multiplyScalar(0.62);
-  label.position.set(dx, 2.52, R.minZ - 0.07);
-  label.rotation.y = Math.PI;
-  group.add(label);
 
   // The table, on two pedestals, and its chairs.
   const table = new THREE.Group();
@@ -2058,16 +2051,5 @@ function buildLoft(group: THREE.Group, colliders: Collider[], interactables: Int
   lamp.position.set(deskX, roofY - 0.4, cz);
   group.add(lamp);
 
-  // Signs: one on the back wall inside, one over the glass for everyone downstairs.
-  const inside = textPlane('👑 Boss Office', { bg: '#fffaf3', size: 64 });
-  inside.scale.multiplyScalar(0.8);
-  inside.position.set(maxX - 3, floorY + 1.9, maxZ - 0.04);
-  inside.rotation.y = Math.PI;
-  group.add(inside);
-  const outside = textPlane('👑 Boss Office', { bg: '#2b2d42', color: '#fffaf3', size: 64, border: '#fffaf3' });
-  outside.scale.multiplyScalar(1.4);
-  outside.position.set(cx, roofY + 0.2, minZ - 0.02);
-  outside.rotation.y = Math.PI;
-  group.add(outside);
   return screen;
 }
