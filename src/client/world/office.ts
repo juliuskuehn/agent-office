@@ -198,8 +198,8 @@ function onWall(side: Side, u: number): { x: number; z: number; rotY: number } {
   }
 }
 
-/** The office's floor, on every floor whatever its palette: pale grey planks, and the seams between them. */
-const OFFICE_FLOOR = { floor: '#c4c7cc', seam: '#b0b4ba' };
+/** The office's floor, on every floor whatever its palette: red planks, and the seams between them. */
+const OFFICE_FLOOR = { floor: '#b8453e', seam: '#9e3833' };
 /** The big rug all the desks stand on. */
 const DESK_RUG = { color: '#f3b3c3', minX: -14.2, maxX: 2.2, minZ: -6.6, maxZ: 6.6 } as const;
 
@@ -1480,7 +1480,7 @@ export function buildOffice(): Office {
   tvGroup.userData.interact = tv;
   fixture('east', TV.z, TV.y, TV.width + 0.3, TV.height + 0.3);
 
-  // The machine monitor between the west windows, facing the desks.
+  // The machine monitor on the north wall past the elevator, facing into the room.
   const monitor = new THREE.Group();
   const bezel = mesh(roundedBox(MACHINE_MONITOR.width + 0.16, 0.1, MACHINE_MONITOR.height + 0.16, 0.06), toon(PALETTE.ink), 0, 0, 0);
   bezel.rotation.x = Math.PI / 2;
@@ -1488,10 +1488,9 @@ export function buildOffice(): Office {
   const machineScreen = new THREE.Mesh(new THREE.PlaneGeometry(MACHINE_MONITOR.width, MACHINE_MONITOR.height), new THREE.MeshBasicMaterial({ color: '#ffffff' }));
   machineScreen.position.z = 0.06;
   monitor.add(machineScreen);
-  monitor.position.set(MACHINE_MONITOR.x + 0.07, MACHINE_MONITOR.y, MACHINE_MONITOR.z);
-  monitor.rotation.y = Math.PI / 2;
+  monitor.position.set(MACHINE_MONITOR.x, MACHINE_MONITOR.y, MACHINE_MONITOR.z + 0.07);
   group.add(monitor);
-  fixture('west', MACHINE_MONITOR.z, MACHINE_MONITOR.y, MACHINE_MONITOR.width + 0.2, MACHINE_MONITOR.height + 0.2);
+  fixture('north', MACHINE_MONITOR.x, MACHINE_MONITOR.y, MACHINE_MONITOR.width + 0.2, MACHINE_MONITOR.height + 0.2);
 
   // The couch, its back to the room, turned from the model's +z to face the TV on the east wall (+x).
   const couch = loungeCouch();
