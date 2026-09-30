@@ -466,10 +466,10 @@ export function buildStack(colliders: Collider[], planks: THREE.Material): Stack
       sign.material.dispose();
     }
     ladderSigns = [];
-    // On the wall beside it: one up high, one down low.
+    // On the wall beside it: one up high, one down low, over the bookshelf.
     for (const [name, arrow, y] of [
       [s.up, '⬆', LADDER_SIGN_UP],
-      [s.down, '⬇', 0.62],
+      [s.down, '⬇', 1.05],
     ] as const) {
       if (!others || !name) continue;
       const sign = textPlane(`🪜 ${arrow} ${name.length > 22 ? `${name.slice(0, 21)}…` : name}`, { bg: '#ffd166', size: 44 });

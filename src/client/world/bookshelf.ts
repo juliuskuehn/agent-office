@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BOOKSHELF, FLOOR } from '../../shared/layout';
+import { BOOKSHELF, BOOKSHELF_BOX } from '../../shared/layout';
 import { mergeByMaterial, mesh, textPlane, toon } from './toon';
 import type { Collider, Interactable } from './office';
 
-// The bookshelf against the south wall: one long, low shelf in a black steel frame, a grid of wire
+// The bookshelf against the west wall: one long, low shelf in a metallic grey frame, a grid of wire
 // at its back and ends, packed along its length with books of every size and color (a few leaning
 // over, a stack lying flat, a globe among them), and a "Docs" sign over it. E at it opens the
 // project's Markdown to read (ui/bookshelf.ts).
@@ -31,7 +31,7 @@ export function buildBookshelf(): BookshelfModel {
 
   // Built facing +z, back against z = -D/2.
   const parts = new THREE.Group();
-  const steel = toon('#1f2126');
+  const steel = toon('#8f969f');
   const box = (w: number, h: number, d: number, mat: THREE.Material, x: number, y: number, z: number) => parts.add(mesh(new THREE.BoxGeometry(w, h, d), mat, x, y, z));
   // The frame: a post at each corner, and the shelf's plate and the top's.
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(BAR, H, BAR, steel, sx * (W / 2 - BAR / 2), H / 2, sz * (D / 2 - BAR / 2));
@@ -107,11 +107,11 @@ export function buildBookshelf(): BookshelfModel {
   sign.position.set(0, H + 0.25, 0.02);
   group.add(sign);
 
-  // Built facing +z; it stands against the south wall facing into the room (-z).
+  // Built facing +z; it stands against its wall facing into the room.
   group.position.set(BOOKSHELF.x, 0, BOOKSHELF.z);
-  group.rotation.y = Math.PI;
-  const collider: Collider = { minX: BOOKSHELF.x - W / 2 - 0.04, maxX: BOOKSHELF.x + W / 2 + 0.04, minZ: BOOKSHELF.z - D / 2 - 0.03, maxZ: FLOOR.maxZ, top: H };
-  const interactable: Interactable = { kind: 'bookshelf', x: BOOKSHELF.x, z: BOOKSHELF.z - 1.2, radius: 1.6 };
+  group.rotation.y = BOOKSHELF.rotY;
+  const collider: Collider = { ...BOOKSHELF_BOX, top: H };
+  const interactable: Interactable = { kind: 'bookshelf', x: BOOKSHELF.x + Math.sin(BOOKSHELF.rotY) * 1.2, z: BOOKSHELF.z + Math.cos(BOOKSHELF.rotY) * 1.2, radius: 1.6 };
   group.userData.interact = interactable;
   return { group, collider, interactable };
 }
