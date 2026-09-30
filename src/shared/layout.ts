@@ -144,12 +144,12 @@ export type StationKind = 'issues' | 'pulls' | 'queue';
  * rotY PI the worker stands on the wall side of it. Nobody hires them from the desks or the queue.
  */
 export const STATIONS: DeskDef[] = [
-  // Between the plant in the north-west corner and the Issues board.
-  { id: 'station-issues', station: 'issues', x: -15.6, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Issues board' },
+  // Between the north-west corner and the Issues board.
+  { id: 'station-issues', station: 'issues', x: -16.9, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Issues board' },
   // Between the task queue and the PR board.
-  { id: 'station-pulls', station: 'pulls', x: 0, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'PR board' },
+  { id: 'station-pulls', station: 'pulls', x: -3.3, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'PR board' },
   // Between the Issues board and the task queue.
-  { id: 'station-queue', station: 'queue', x: -7.8, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Task queue' },
+  { id: 'station-queue', station: 'queue', x: -10.1, z: FLOOR.minZ + 1.3, rotY: Math.PI, label: 'Task queue' },
 ];
 /** A board agent's kiosk: its top, and how far behind its middle (toward the wall) the agent stands. */
 export const KIOSK = { width: 0.8, depth: 0.5, height: 0.55, stand: 0.55 } as const;
@@ -238,24 +238,22 @@ export function deskSeat(desk: DeskDef, offset = 0.85): { x: number; z: number }
 /** Wall boards. `rotY` is the way the board faces (0 = +z, like the north-wall boards). */
 export const BOARDS = {
   // Side by side along the north wall, the way work goes: an issue goes on the task queue (the
-  // whiteboard in the middle), and its worker's pull request comes out the other side. Each has its
-  // board agent's kiosk just west of it (see STATIONS).
-  issues: { x: -11.7, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: 'Issues' },
-  queue: { x: -3.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '📋 Task queue' },
-  pulls: { x: 3.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: 'Pull Requests' },
-  // West wall, south of the exit door: smaller than the others, but the same 2:1 shape, which is
-  // what its chalkboard is drawn for.
-  services: { x: FLOOR.minX + 0.08, y: 2.1, z: 9.3, rotY: Math.PI / 2, width: 3.9, height: 1.95, label: '🌐 Services' },
+  // whiteboard in the middle), and its worker's pull request comes out the other side, and the
+  // services its workers run are last before the elevator. The first three have their board agent's
+  // kiosk just west of them (see STATIONS). All are 2:1, which is what their faces are drawn for.
+  issues: { x: -13.5, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 5, height: 2.5, label: 'Issues' },
+  queue: { x: -6.7, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 5, height: 2.5, label: '📋 Task queue' },
+  pulls: { x: 0.1, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 5, height: 2.5, label: 'Pull Requests' },
+  services: { x: 4.85, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 3.9, height: 1.95, label: '🌐 Services' },
 } as const;
 
 /** The big TV on the east wall that shows whoever is screen sharing. */
 export const TV = { x: FLOOR.maxX - 0.1, y: 2.2, z: 0, width: 6.4, height: 3.6 } as const;
 /**
- * The monitor on the west wall, between the first two windows from the north (the ladder has the
- * span between the middle two) and facing the desks: how busy the office's machine is, and how many
- * workers it runs of the most it takes.
+ * The monitor on the north wall, just east of the elevator, facing into the room: how busy the
+ * office's machine is, and how many workers it runs of the most it takes.
  */
-export const MACHINE_MONITOR = { x: FLOOR.minX, y: 2.2, z: -6, width: 2.3, height: 1.3 } as const;
+export const MACHINE_MONITOR = { x: 11.6, y: 2.2, z: FLOOR.minZ, width: 2.3, height: 1.3 } as const;
 /** The lounge jukebox, against the east wall south of the TV, facing into the room. `y` is its speaker. */
 export const JUKEBOX = { x: FLOOR.maxX - 0.42, y: 0.75, z: 5.4, width: 1.3, depth: 0.72, height: 1.85 } as const;
 /** The arcade cabinet, against the east wall between the jukebox and the loft, facing into the room. `width` runs along the wall. */
@@ -631,24 +629,18 @@ const doorway = (o: Opening) => [o.u - o.width / 2, o.u + o.width / 2] as const;
 const transom = (o: Opening): Opening => ({ wall: o.wall, u: o.u, width: o.width, y0: o.y1 + 0.1, y1: GLASS_FRONT.head });
 
 /**
- * Windows you can see out of: the glass fronts. Solid on the north wall behind the three boards and the
- * elevator (the stretch east of WING.minX is the back office's, see buildWing), on the east behind the
- * TV, and on the west behind the machine's monitor, the ladder and its signs, and the services board.
+ * Windows you can see out of: glass fronts on three sides. The north wall, where the boards, the
+ * elevator and the machine's monitor are, is solid; the east is glass but behind the TV, and the west
+ * but behind the ladder and its signs.
  */
 export const WINDOWS: Opening[] = [
-  ...glassFront('north', FLOOR.minX, WING.minX, [
-    ...[BOARDS.issues, BOARDS.queue, BOARDS.pulls].map((b) => behind(b.x, b.width)),
-    [ELEVATOR.x - ELEVATOR.width / 2, ELEVATOR.x + ELEVATOR.width / 2],
-  ]),
   ...glassFront('south', FLOOR.minX, FLOOR.maxX, [doorway(BALCONY_DOOR)]),
   transom(BALCONY_DOOR),
   ...glassFront('east', FLOOR.minZ, FLOOR.maxZ, [behind(TV.z, TV.width)]),
   ...glassFront('west', FLOOR.minZ, FLOOR.maxZ, [
-    behind(MACHINE_MONITOR.z, MACHINE_MONITOR.width),
     // The ladder, and north of it the signs to the floors above and below (see world/stack.ts).
     [LADDER.z - LADDER.width / 2 - GLASS_FRONT.margin, LADDER.z + 2.6],
     doorway(EXIT_DOOR),
-    behind(BOARDS.services.z, BOARDS.services.width),
   ]),
   transom(EXIT_DOOR),
 ];
