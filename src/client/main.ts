@@ -78,7 +78,7 @@ import { hiringPaused, renderUsage, usageLabel, usageTitle } from './ui/usage';
 import { GARAGE, elevatorPanelOpen, openElevator, routeElevatorMessage } from './ui/elevator';
 import { toggleFloorMenu } from './ui/floormenu';
 import { providerLabel, officeChoice, resolvedProvider, modelBadge } from './ui/provider';
-import { mirrorWhiteboard, openWhiteboard, routeWhiteboardMessage } from './ui/whiteboard';
+import { openWhiteboard, routeWhiteboardMessage } from './ui/whiteboard';
 import { renderLimits } from './ui/limits';
 import { MachineTexture } from './world/machine';
 import { officeFull, pressureNote } from '../shared/machine';
@@ -290,8 +290,6 @@ const gallery = new Gallery();
 office.group.add(gallery.group);
 store.on('decor', () => gallery.sync(store.decor));
 
-// The whiteboard shows what everyone's drawn on it.
-mirrorWhiteboard(office.whiteboard.show, office.whiteboard.fit.width, office.whiteboard.fit.height);
 
 // Confetti for merges, landing on whatever it falls on
 // Onto whatever you're walking on: the office's floor and furniture, or the roof's.

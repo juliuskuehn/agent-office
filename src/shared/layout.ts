@@ -309,7 +309,8 @@ export function plantsAt(level: number): readonly (readonly [x: number, z: numbe
 
 /**
  * The whiteboard on wheels everyone draws on together, out on the open floor between the desks and
- * the lounge, facing into the room (+z). `width` and `height` are its writing surface, whose bottom
+ * the lounge, facing into the room (+z), as world/whiteboard.ts builds it. The office has none out
+ * now: the drawing's in the ☰ menu. `width` and `height` are its writing surface, whose bottom
  * edge is `bottom` above the floor.
  */
 export const WHITEBOARD = { x: 5.4, z: -5.4, width: 4, height: 2.2, bottom: 0.5 } as const;
@@ -634,18 +635,15 @@ const doorway = (o: Opening) => [o.u - o.width / 2, o.u + o.width / 2] as const;
 const transom = (o: Opening): Opening => ({ wall: o.wall, u: o.u, width: o.width, y0: o.y1 + 0.1, y1: GLASS_FRONT.head });
 
 /**
- * Windows you can see out of: glass fronts on three sides. The north wall, where the boards, the
- * elevator and the machine's monitor are, is solid; the east is glass but behind the TV, and the west
- * but behind the ladder and its signs.
+ * Windows you can see out of: glass fronts all round. The boards and the machine's monitor hang in
+ * front of the north one, which is solid only behind the elevator (and east of WING.minX, the back
+ * office's, see buildWing); the east is solid behind the TV, and the west's only break is the exit door.
  */
 export const WINDOWS: Opening[] = [
+  ...glassFront('north', FLOOR.minX, WING.minX, [[ELEVATOR.x - ELEVATOR.width / 2, ELEVATOR.x + ELEVATOR.width / 2]]),
   ...glassFront('south', FLOOR.minX, FLOOR.maxX, [doorway(BALCONY_DOOR)]),
   transom(BALCONY_DOOR),
   ...glassFront('east', FLOOR.minZ, FLOOR.maxZ, [behind(TV.z, TV.width)]),
-  ...glassFront('west', FLOOR.minZ, FLOOR.maxZ, [
-    // The ladder, and north of it the signs to the floors above and below (see world/stack.ts).
-    [LADDER.z - LADDER.width / 2 - GLASS_FRONT.margin, LADDER.z + 2.6],
-    doorway(EXIT_DOOR),
-  ]),
+  ...glassFront('west', FLOOR.minZ, FLOOR.maxZ, [doorway(EXIT_DOOR)]),
   transom(EXIT_DOOR),
 ];

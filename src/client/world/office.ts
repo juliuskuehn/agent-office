@@ -13,7 +13,6 @@ import { buildElevator, type Elevator } from './elevator';
 import { buildJukebox, type JukeboxView } from './jukebox';
 import { buildBookshelf } from './bookshelf';
 import { buildCabinet, type CabinetModel } from './cabinet';
-import { buildWhiteboard, type WhiteboardStand } from './whiteboard';
 import { buildGreen, buildTee, type Green, type Tee } from './golf';
 import { buildStack, type Stack } from './stack';
 import { buildTower, wingWindows } from './tower';
@@ -107,8 +106,6 @@ export interface Office {
   jukebox: JukeboxView;
   /** The arcade cabinet in the lounge, where BLOCKFALL plays (ui/cabinet.ts). */
   cabinet: CabinetModel;
-  /** The rolling whiteboard everyone draws on together. */
-  whiteboard: WhiteboardStand;
   /** The golf tee on the balcony, and the hole across the street it's hit at. */
   tee: Tee;
   green: Green;
@@ -202,10 +199,12 @@ function onWall(side: Side, u: number): { x: number; z: number; rotY: number } {
   }
 }
 
-/** The office's floor, on every floor whatever its palette: one even dark grey, without seams. */
-const OFFICE_FLOOR = { floor: '#44474d' };
+/** The office's floor, on every floor whatever its palette: one even mid grey, without seams. */
+const OFFICE_FLOOR = { floor: '#6e7279' };
+/** The pink of the rug in front of the TV, which the big rug under the desks is too. */
+const RUG_PINK = '#ffc6ff';
 /** The big rug all the desks stand on. */
-const DESK_RUG = { color: '#f3b3c3', minX: -14.2, maxX: 2.2, minZ: -6.6, maxZ: 6.6 } as const;
+const DESK_RUG = { color: RUG_PINK, minX: -14.2, maxX: 2.2, minZ: -6.6, maxZ: 6.6 } as const;
 
 /** Even planks of one shade throughout, with only the seams between them (if they have any). */
 function paintPlanks(c: HTMLCanvasElement, colors: { floor: string; seam?: string }) {
@@ -1539,7 +1538,7 @@ export function buildOffice(): Office {
   table.position.set(13, 0, 0);
   group.add(table);
   colliders.push({ minX: 12.2, maxX: 13.8, minZ: -0.8, maxZ: 0.8, top: 0.46 });
-  const lounge = mesh(roundedBox(7, 0.02, 7, 1.2), toon('#ffc6ff'), 13.4, 0.011, 0, false);
+  const lounge = mesh(roundedBox(7, 0.02, 7, 1.2), toon(RUG_PINK), 13.4, 0.011, 0, false);
   group.add(lounge);
 
   // A pouf either side of the lounge (the seats still called beanbags), turned to the TV like whoever sits on it.
@@ -1656,11 +1655,6 @@ export function buildOffice(): Office {
 
 
 
-  // The whiteboard, out on the floor between the desks and the lounge.
-  const whiteboard = buildWhiteboard();
-  group.add(whiteboard.group);
-  colliders.push(...whiteboard.colliders);
-  interactables.push(whiteboard.interactable);
   // Pictures stay clear of the stairs (step by step, so they can hang above them) and of what's on
   // the loft's walls upstairs, as buildLoft places it: the couch and the sign.
   const run = (STAIRS.toX - STAIRS.fromX) / STAIRS.steps;
@@ -1718,7 +1712,7 @@ export function buildOffice(): Office {
     scenic.update(t);
   };
 
-  return { group, colliders, interactables, desks, setBeanbags, boardMeshes, tvScreen, bossScreen, machineScreen, meetingBoard: meeting.board, meetingSign: meeting.sign, fixtures: () => fixtures, elevator, garageLift, cars, scenic, skyline, jukebox, cabinet, whiteboard, tee, green, stack, wing, setWing, signs, setProjectName, setLook, setLevel, night, plants, update };
+  return { group, colliders, interactables, desks, setBeanbags, boardMeshes, tvScreen, bossScreen, machineScreen, meetingBoard: meeting.board, meetingSign: meeting.sign, fixtures: () => fixtures, elevator, garageLift, cars, scenic, skyline, jukebox, cabinet, tee, green, stack, wing, setWing, signs, setProjectName, setLook, setLevel, night, plants, update };
 }
 
 /** A chair at the meeting table, with its laptop on the table in front of it. */
