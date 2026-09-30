@@ -243,8 +243,8 @@ export const BOARDS = {
   issues: { x: -11.7, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: 'Issues' },
   queue: { x: -3.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: '📋 Task queue' },
   pulls: { x: 3.9, y: 2.1, z: FLOOR.minZ + 0.08, rotY: 0, width: 6, height: 3, label: 'Pull Requests' },
-  // West wall, between the exit door and the basketball hoop: smaller than the others, but the same
-  // 2:1 shape, which is what its chalkboard is drawn for.
+  // West wall, south of the exit door: smaller than the others, but the same 2:1 shape, which is
+  // what its chalkboard is drawn for.
   services: { x: FLOOR.minX + 0.08, y: 2.1, z: 9.3, rotY: Math.PI / 2, width: 3.9, height: 1.95, label: '🌐 Services' },
 } as const;
 
@@ -288,19 +288,11 @@ export const KITCHEN = {
 
 export const SPAWN = { x: 8, z: 7 } as const;
 
-/** The gong: on the north wall just past the elevator from the PR board, facing into the room. It rings when a PR merges. */
+/** The gong's size, and where the office's stood (it has none now: see world/gong.ts, which a map's gong is built by). */
 export const GONG = { x: 11.8, z: FLOOR.minZ + 0.75, width: 1.9, height: 2.45 } as const;
 
-/** Potted plants around the room: where each stands, and how big it is. */
-export const PLANTS: readonly (readonly [x: number, z: number, scale: number])[] = [
-  [-17.2, -12.2, 1.4],
-  [17.2, 12.2, 1.3],
-  [-13.5, 12.2, 1.2],
-  [14.2, -12.2, 1.1],
-  [-6, 0, 1],
-  [3.5, 0, 0.9],
-  [8.5, 5, 1.1],
-];
+/** Potted plants around the room: where each stands, and how big it is. None: add `[x, z, scale]` to put one back. */
+export const PLANTS: readonly (readonly [x: number, z: number, scale: number])[] = [];
 
 /** A plant by the north wall east of the gong, in the way into the back office: put away once it's built. */
 export function plantByWing([x, z]: readonly [number, number, number]): boolean {
@@ -641,8 +633,7 @@ const transom = (o: Opening): Opening => ({ wall: o.wall, u: o.u, width: o.width
 /**
  * Windows you can see out of: the glass fronts. Solid on the north wall behind the three boards and the
  * elevator (the stretch east of WING.minX is the back office's, see buildWing), on the east behind the
- * TV, and on the west behind the machine's monitor, the ladder and its signs, and the services board
- * and the basketball hoop beside it, which run on to the corner.
+ * TV, and on the west behind the machine's monitor, the ladder and its signs, and the services board.
  */
 export const WINDOWS: Opening[] = [
   ...glassFront('north', FLOOR.minX, WING.minX, [
@@ -657,7 +648,7 @@ export const WINDOWS: Opening[] = [
     // The ladder, and north of it the signs to the floors above and below (see world/stack.ts).
     [LADDER.z - LADDER.width / 2 - GLASS_FRONT.margin, LADDER.z + 2.6],
     doorway(EXIT_DOOR),
-    [BOARDS.services.z - BOARDS.services.width / 2 - GLASS_FRONT.margin, FLOOR.maxZ],
+    behind(BOARDS.services.z, BOARDS.services.width),
   ]),
   transom(EXIT_DOOR),
 ];

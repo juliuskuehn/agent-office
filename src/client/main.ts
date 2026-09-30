@@ -1611,7 +1611,7 @@ function setPlace() {
 /** What you can use where you are, and what's in the way of looking at it. */
 function usable(): Interactable[][] {
   if (upTop && roof) return [roof.interactables];
-  return inOffice() ? [office.interactables, gallery.interactables, dog.interactables, ball.interactables] : [world.interactables, court?.interactables ?? []];
+  return inOffice() ? [office.interactables, gallery.interactables, dog.interactables, ...(COURT ? [ball.interactables] : [])] : [world.interactables, court?.interactables ?? []];
 }
 
 /**
@@ -3118,9 +3118,15 @@ function checkSmokeBreak(now: number) {
 }
 
 // ---- The basketball --------------------------------------------------------------------------------
+/**
+ * Whether the office has its basketball court. It doesn't any more: office.ts builds no hoop, and the
+ * ball is never out, so nobody picks it up and the rest of this section stays idle. To put the court
+ * back, build the hoop in office.ts again (buildHoop, from world/hoop.ts) and set this.
+ */
+const COURT = false;
 /** The floor's basketball, by the hoop on the west wall (see world/hoop.ts). */
 const ball = new Basketball(() => office.colliders);
-office.group.add(ball.group);
+if (COURT) office.group.add(ball.group);
 /**
  * Ball messages of yours the office hasn't answered yet (it answers every one): until it has, what
  * you did stands, so picking it up and shooting quickly doesn't snap it back into your hands.
@@ -3223,10 +3229,8 @@ function handsOf(id: string, out: THREE.Vector3): THREE.Vector3 | null {
 }
 
 ball.onHit = (hit, at) => {
-  if (hit.kind === 'score') {
-    office.hoop.swish();
-    sound.ball('score', HOOP.rim, hit.speed);
-  } else if (hit.speed > 0.6) sound.ball(hit.kind, at, hit.speed);
+  if (hit.kind === 'score') sound.ball('score', HOOP.rim, hit.speed);
+  else if (hit.speed > 0.6) sound.ball(hit.kind, at, hit.speed);
 };
 ball.onThrow = (by) => remotes.get(by)?.person.shoot();
 ball.onMiss = (by) => {
@@ -4840,7 +4844,7 @@ function frame(ts?: number) {
   court?.update(dt);
   // The dog is the office's: on a map of its own it stays at home, quiet.
   if (inOffice()) dog.update(dt);
-  if (!upTop && inOffice()) updateBall(now, dt);
+  if (COURT && !upTop && inOffice()) updateBall(now, dt);
   if (!upTop) {
     world.update(t, dt, [player.pos, ...[...remotes.values()].map((r) => r.person.root.position), ...departures.positions(), ...sendoffs.positions(), ...arrivals.positions(), ...(court?.positions() ?? [])]);
     if (inOffice()) {
@@ -4876,7 +4880,7 @@ function frame(ts?: number) {
   if (modalOpen() || telescope.active || hanger.active || climber.active || golf.active || thrower.active || driver.active) target = null;
   else if (firstPerson) {
     const aim = aimedAt(CROSSHAIR);
-    target = aim?.near ? aim.it : (throneTarget() ?? mySeat() ?? (inOffice() ? ballAtFeet() : null));
+    target = aim?.near ? aim.it : (throneTarget() ?? mySeat() ?? (COURT && inOffice() ? ballAtFeet() : null));
     if (aim?.near) aimedNote = noteUnder(aim);
   } else {
     target = throneTarget() ?? mySeat() ?? pickTarget();
