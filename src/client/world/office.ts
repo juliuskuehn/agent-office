@@ -17,6 +17,8 @@ import { buildGreen, buildTee, type Green, type Tee } from './golf';
 import { buildStack, type Stack } from './stack';
 import { buildTower, wingWindows } from './tower';
 import { buildKitchen } from './kitchen';
+import gunStoreUrl from '../models/curtain-gun-store.jpg?url';
+import treeUrl from '../models/curtain-tree.jpg?url';
 import { IMAC_SCALE, idleDisplay } from './laptop';
 import { IMAC_COLORS, imac, iphone, macMini } from './macs';
 import { buildDeskSigns, type DeskSigns } from './desksigns';
@@ -219,8 +221,11 @@ const RUG_PINK = '#ffc6ff';
 const OFFICE_FLOOR = { floor: RUG_PINK };
 /** The rug the round table stands on, its chairs and all: a black starburst with a grey edge (`star`), `reach` to its spikes' tips; `color` is the back office's. */
 const DESK_RUG = { color: '#d62828', radius: 4.4, star: { fill: '#161616', edge: '#8d9199' }, reach: 6.6 } as const;
-/** The east wall's curtains' colors, north to south: before the four boards, the TV, the machine's monitor and the window past it. */
-const EAST_CURTAINS = ['#8c2130', '#1d4e89', '#2d6a4f', '#d4a017', '#6a4c93', '#e07a5f', '#1a9a9a'] as const;
+/** The east wall's curtains' greys, north to south (before the four boards, the TV, the machine's monitor and the window past it), and the pictures printed on them, taking turns. */
+const EAST_CURTAINS = ['#5f6368', '#9ea3a9', '#74797f', '#c3c6ca', '#686c72', '#adb1b6', '#83888e'] as const;
+const CURTAIN_PRINTS = [gunStoreUrl, treeUrl] as const;
+/** The grey of the curtain before the board agents' room (the tree's printed on it too). */
+const AGENTS_CURTAIN = '#7b8086';
 /** The walls, their trim and every window's and door's frame, on every floor whatever its palette: one light grey. */
 const OFFICE_WALL = '#e8e8e8';
 
@@ -1262,14 +1267,42 @@ export function starRug(rx: number, rz: number, points = 14, colors: { fill: str
 }
 
 /**
+ * What's printed on a curtain `width` by `height` in `color`: the picture at `url`, as wide as it fits
+ * with a margin, its middle about 2.3 m up; the cloth's color all round it. It paints in once loaded.
+ */
+function curtainPrint(width: number, height: number, color: string, url: string): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = Math.round((512 * height) / width);
+  const g = c.getContext('2d')!;
+  g.fillStyle = color;
+  g.fillRect(0, 0, c.width, c.height);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const img = new Image();
+  img.onload = () => {
+    const w = c.width * 0.86;
+    const h = (w * img.height) / img.width;
+    const mid = c.height * (1 - 2.3 / height);
+    g.drawImage(img, (c.width - w) / 2, mid - h / 2, w, h);
+    tex.needsUpdate = true;
+  };
+  img.src = url;
+  return tex;
+}
+
+/**
  * A curtain `width` wide and `height` tall, in two halves on a rod over it: pleated all the way down,
  * the folds deeper toward the hem, so it falls in light and dark stripes. Built across x, facing +z.
- * `show(k)` draws it: 0 shut, 1 gathered at either side, its folds bunched up.
+ * With `print`, a picture is printed across it at about eye height, on its `color`. `show(k)` draws
+ * it: 0 shut, 1 gathered at either side, its folds (and the picture) bunched up.
  */
-export function buildCurtain(width: number, height: number, color = '#8c2130', pickable = false): { group: THREE.Group; show(k: number): void } {
+export function buildCurtain(width: number, height: number, color = '#8c2130', pickable = false, print?: string): { group: THREE.Group; show(k: number): void } {
   const group = new THREE.Group();
-  const cloth = toonUnique(color);
+  const cloth = toonUnique(print ? '#ffffff' : color);
   cloth.side = THREE.DoubleSide;
+  if (print) cloth.map = curtainPrint(width, height, color, print);
   // Shade in the folds' hollows too, so they show whatever the light.
   cloth.vertexColors = true;
   const half = width / 2;
@@ -1277,6 +1310,9 @@ export function buildCurtain(width: number, height: number, color = '#8c2130', p
   const halves = [-1, 1].map((side) => {
     const geo = new THREE.PlaneGeometry(half, height, Math.round(half / pleat) * 10, 16).translate(half / 2, height / 2, 0);
     const pos = geo.attributes.position as THREE.BufferAttribute;
+    // Across the whole curtain, not each half: the west half from its outer end in, the east (mirrored) half from its outer end back.
+    const uv = geo.attributes.uv as THREE.BufferAttribute;
+    for (let i = 0; i < uv.count; i++) uv.setX(i, side < 0 ? pos.getX(i) / width : 1 - pos.getX(i) / width);
     const shade: number[] = [];
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
@@ -1563,7 +1599,7 @@ export function buildOffice(): Office {
   doors.push(exit.door);
   // The curtain across the way into the back office, where the board agents stand: it parts for
   // whoever comes up to it, like a door.
-  const curtain = buildCurtain(FLOOR.maxX - WING.minX, WALL_HEIGHT - 0.3);
+  const curtain = buildCurtain(FLOOR.maxX - WING.minX, WALL_HEIGHT - 0.3, AGENTS_CURTAIN, false, treeUrl);
   const curtainX = (WING.minX + FLOOR.maxX) / 2;
   curtain.group.position.set(curtainX, 0, FLOOR.minZ - WALL_T / 2);
   group.add(curtain.group);
@@ -1699,11 +1735,11 @@ export function buildOffice(): Office {
   }
   // A curtain across each pane of the east wall's glass from the north corner to the one past the
   // machine's monitor (south of that the loft's floor is in the way): before the boards, the TV and
-  // the monitor, floor to ceiling, each its own color. Click one to draw it open or shut.
+  // the monitor, floor to ceiling, each its own grey with a picture on it. Click one to draw it open or shut.
   const drapes: { want: number; open: number; show(k: number): void }[] = [];
   EAST_CURTAINS.forEach((color, i) => {
     const z = FLOOR.minZ + EAST_PANE * (i + 0.5);
-    const curtain = buildCurtain(EAST_PANE - 0.12, WALL_HEIGHT - 0.3, color, true);
+    const curtain = buildCurtain(EAST_PANE - 0.12, WALL_HEIGHT - 0.3, color, true, CURTAIN_PRINTS[i % CURTAIN_PRINTS.length]);
     curtain.group.position.set(FLOOR.maxX - 0.35, 0, z);
     curtain.group.rotation.y = -Math.PI / 2;
     curtain.group.userData.interact = { kind: 'curtain', curtain: i, x: FLOOR.maxX - 1.6, z, radius: 2.4 } satisfies Interactable;
