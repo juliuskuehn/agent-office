@@ -21,32 +21,37 @@ export interface DeskDef {
   room?: boolean;
   /** A desk in the back office (see WING): there once the floor is built out this many rows. */
   wing?: number;
+  /** A place at one of the round tables (see ROUND_TABLES): the table's middle. (x, z) is where its laptop sits. */
+  table?: { x: number; z: number };
 }
 
 const DESK_WIDTH = 2.2;
 const DESK_DEPTH = 1.1;
 export const DESK_SIZE = { width: DESK_WIDTH, depth: DESK_DEPTH, height: 0.78 } as const;
 
+/**
+ * The round tables the office's desks are places at, four round each: their middles, how big they
+ * are (`radius`, and the same `height` as a desk), and how far out from the middle each place's laptop
+ * sits (`place`). The chair is out from the laptop the way a desk's is (deskSeat), past the edge.
+ */
+export const ROUND_TABLE = { radius: 1.25, height: DESK_SIZE.height, place: 0.62 } as const;
+export const ROUND_TABLES: readonly { x: number; z: number }[] = [
+  { x: -10.5, z: -4 },
+  { x: -1.5, z: -4 },
+  { x: -10.5, z: 4 },
+  { x: -1.5, z: 4 },
+];
+
 function buildDesks(): DeskDef[] {
   const desks: DeskDef[] = [];
-  const clusterX = [-10.5, -1.5];
-  // Each pod is two back-to-back rows; the far row faces +z (rotY = PI).
-  const pods = [
-    { back: -4.55, front: -3.45 },
-    { back: 3.45, front: 4.55 },
-  ];
   let n = 1;
-  for (const pod of pods) {
-    for (const cx of clusterX) {
-      for (const [z, rotY] of [
-        [pod.back, Math.PI],
-        [pod.front, 0],
-      ] as const) {
-        for (const dx of [-DESK_WIDTH / 2, DESK_WIDTH / 2]) {
-          desks.push({ id: `desk-${n}`, x: cx + dx, z, rotY, label: `Desk ${n}` });
-          n++;
-        }
-      }
+  for (const table of ROUND_TABLES) {
+    // A quarter turn apart, so each place still faces along x or z: south, north, east, then west.
+    for (const rotY of [0, Math.PI, Math.PI / 2, -Math.PI / 2]) {
+      const x = table.x + Math.sin(rotY) * ROUND_TABLE.place;
+      const z = table.z + Math.cos(rotY) * ROUND_TABLE.place;
+      desks.push({ id: `desk-${n}`, x, z, rotY, label: `Desk ${n}`, table });
+      n++;
     }
   }
   return desks;

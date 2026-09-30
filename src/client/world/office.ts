@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, CABINET, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
+import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, CABINET, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, ROUND_TABLE, ROUND_TABLES, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
 import { wallFacing, type WallId, type WallRect } from '../../shared/decor';
 import { deskPoint } from '../../shared/nav';
 import { FLOOR_PALETTES, type FloorPalette } from '../../shared/floors';
@@ -1108,26 +1108,30 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
   group.position.set(def.x, 0, def.z);
   group.rotation.y = def.rotY;
   const { width, depth, height } = DESK_SIZE;
-  group.add(mesh(roundedBox(width - 0.06, 0.08, depth - 0.04, 0.08), toon(PALETTE.desk), 0, height - 0.04, 0));
-  const legMat = toon('#8d99ae');
-  for (const sx of [-1, 1]) {
-    for (const sz of [-1, 1]) {
-      group.add(mesh(new THREE.CylinderGeometry(0.035, 0.035, height - 0.08, 8), legMat, sx * (width / 2 - 0.14), (height - 0.08) / 2, sz * (depth / 2 - 0.12)));
+  // A place at a round table has the table to itself for a top (see buildRoundTable); a desk has its own.
+  if (!def.table) {
+    group.add(mesh(roundedBox(width - 0.06, 0.08, depth - 0.04, 0.08), toon(PALETTE.desk), 0, height - 0.04, 0));
+    const legMat = toon('#8d99ae');
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        group.add(mesh(new THREE.CylinderGeometry(0.035, 0.035, height - 0.08, 8), legMat, sx * (width / 2 - 0.14), (height - 0.08) / 2, sz * (depth / 2 - 0.12)));
+      }
     }
+    // Modesty panel facing away from the worker
+    group.add(mesh(box(width - 0.3, 0.32, 0.03), trimMat, 0, height - 0.26, -depth / 2 + 0.06));
   }
-  // Modesty panel facing away from the worker
-  group.add(mesh(box(width - 0.3, 0.32, 0.03), trimMat, 0, height - 0.26, -depth / 2 + 0.06));
-  // Little desk decorations. Which desk gets which stays as it is: the holiday present goes in whichever
-  // back corner it leaves free (DESK_SPOTS in holiday.ts).
+  // Little desk decorations, to the right of the laptop: at a round table, halfway round to the next
+  // place. The holiday present goes on the other side (DESK_SPOTS in holiday.ts).
+  const [decoX, decoZ] = def.table ? [0.55, -0.07] : [width / 2 - 0.25, -0.2];
   if (index % 2 === 0) {
     // In the chair's color.
     const mug = deskMug(PALETTE.chairs[index % 6]);
-    mug.position.set(width / 2 - 0.25, height, -0.2);
+    mug.position.set(decoX, height, decoZ);
     group.add(mug);
   } else {
     // Where the old three boxes stood, the desks with books taking turns with the arrangements.
     const books = deskBooks(Math.floor(index / 2));
-    books.position.set(width / 2 - 0.26, height, -0.3);
+    books.position.set(decoX - 0.01, height, decoZ - 0.1);
     group.add(books);
   }
 
@@ -1157,6 +1161,18 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
   group.add(vacancy);
 
   return { def, group, laptopAnchor, seatAnchor, stage, chair: ch, vacancy, vacancyY };
+}
+
+/** A round table for four (see ROUND_TABLES): a round top on a pedestal, standing on a round foot. */
+function buildRoundTable(at: { x: number; z: number }): THREE.Group {
+  const { radius, height } = ROUND_TABLE;
+  const g = new THREE.Group();
+  g.add(mesh(new THREE.CylinderGeometry(radius, radius, 0.07, 48), toon(PALETTE.desk), 0, height - 0.035, 0));
+  const steel = toon('#8d99ae');
+  g.add(mesh(new THREE.CylinderGeometry(0.09, 0.09, height - 0.1, 16), steel, 0, (height - 0.07) / 2, 0));
+  g.add(mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.04, 32), steel, 0, 0.02, 0));
+  g.position.set(at.x, 0, at.z);
+  return g;
 }
 
 /** The floating green "+" over an empty seat. */
@@ -1371,15 +1387,23 @@ export function buildOffice(): Office {
   const tower = buildTower(colliders, night);
   group.add(tower.group);
 
-  // Desks
+  // The round tables, and the desks: the places at them.
+  for (const t of ROUND_TABLES) {
+    group.add(buildRoundTable(t));
+    // Square, as colliders are, and a little inside the table's edge, so the chairs tuck in round it.
+    const r = ROUND_TABLE.radius * 0.8;
+    colliders.push({ minX: t.x - r, maxX: t.x + r, minZ: t.z - r, maxZ: t.z + r, top: ROUND_TABLE.height });
+  }
   const desks = new Map<string, DeskView>();
   DESKS.forEach((def, i) => {
     const view = buildDesk(def, i, trimMat);
     group.add(view.group);
     desks.set(def.id, view);
-    const hw = DESK_SIZE.width / 2 - 0.05;
-    const hd = DESK_SIZE.depth / 2 - 0.02;
-    colliders.push({ minX: def.x - hw, maxX: def.x + hw, minZ: def.z - hd, maxZ: def.z + hd, top: DESK_SIZE.height });
+    if (!def.table) {
+      const hw = DESK_SIZE.width / 2 - 0.05;
+      const hd = DESK_SIZE.depth / 2 - 0.02;
+      colliders.push({ minX: def.x - hw, maxX: def.x + hw, minZ: def.z - hd, maxZ: def.z + hd, top: DESK_SIZE.height });
+    }
     const seat = deskSeat(def, 1.25);
     const it: Interactable = { kind: 'desk', deskId: def.id, x: seat.x, z: seat.z, radius: 1.3 };
     interactables.push(it);

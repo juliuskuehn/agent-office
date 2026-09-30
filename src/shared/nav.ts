@@ -4,7 +4,7 @@
 // An office floor built out into the back office (see WING) has more of it to get round: the office's
 // helpers take how many rows it's built out (`wing`), and each level gets a grid of its own.
 
-import { BALCONY, BALCONY_DOOR, BEANBAGS, BOOKSHELF, CABINET, DESK_SIZE, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PARACHUTE, POLE, POLES, ROAD, STAIRS, STATIONS, WHITEBOARD, WING, builtDesks, plantsAt, wingLevel, wingMinZ, type DeskDef } from './layout.js';
+import { BALCONY, BALCONY_DOOR, BEANBAGS, BOOKSHELF, CABINET, DESK_SIZE, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PARACHUTE, POLE, POLES, ROAD, ROUND_TABLE, ROUND_TABLES, STAIRS, STATIONS, WHITEBOARD, WING, builtDesks, plantsAt, wingLevel, wingMinZ, type DeskDef } from './layout.js';
 
 
 export type Pt = [number, number];
@@ -47,9 +47,10 @@ function obstacles(wing: number): Obstacles {
   const circles: Circle[] = [];
   const hw = DESK_SIZE.width / 2;
   const hd = DESK_SIZE.depth / 2;
+  for (const t of ROUND_TABLES) circles.push([t.x, t.z, ROUND_TABLE.radius]);
   for (const d of builtDesks(wing)) {
-    // Desks face ±z, so their tops are axis-aligned.
-    rects.push([d.x - hw, d.x + hw, d.z - hd, d.z + hd]);
+    // A desk of its own faces ±z, so its top is axis-aligned; a place at a round table has the table's.
+    if (!d.table) rects.push([d.x - hw, d.x + hw, d.z - hd, d.z + hd]);
     const [cx, cz] = deskPoint(d, 0, 0.9);
     circles.push([cx, cz, 0.35]); // the chair
   }
