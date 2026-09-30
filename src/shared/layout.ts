@@ -281,8 +281,8 @@ export const TV = { x: FLOOR.maxX - 0.1, y: BOARD_ROW_Y, z: eastBay(4), ...BOARD
  * they are, facing into the room. 23:13, what its screen is drawn for.
  */
 export const MACHINE_MONITOR = { x: FLOOR.maxX, y: BOARD_ROW_Y, z: eastBay(5), width: (BOARD_SIZE.height * 23) / 13, height: BOARD_SIZE.height } as const;
-/** The lounge jukebox, a giant AirPod on a round plinth by the east wall south of the couch, facing into the room. `width` and `depth` are the plinth's, `y` is its speaker. */
-export const JUKEBOX = { x: FLOOR.maxX - 0.75, y: 2, z: 5.6, width: 1.1, depth: 1.1, height: 2.55 } as const;
+/** The lounge jukebox, a giant AirPod lying on the floor along the east wall south of the couch, facing into the room. `width` runs along the wall; `y` is its speaker. */
+export const JUKEBOX = { x: FLOOR.maxX - 1, y: 1, z: 5.8, width: 3.2, depth: 1.4, height: 1.4 } as const;
 /** The arcade cabinet, against the east wall between the jukebox and the loft, facing into the room. `width` runs along the wall. */
 export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, height: 1.9 } as const;
 

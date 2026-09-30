@@ -19,7 +19,7 @@ import { buildGong } from '../world/gong';
 import { buildJukebox } from '../world/jukebox';
 import { buildKitchen } from '../world/kitchen';
 import { preloadModels } from '../world/models';
-import { DESK_BOOKS, FLOOR_PLANTS, buildCurtain, buildDesk, buildRoundTable, coffeeTable, togoSofa, deskBooks, deskMug, loungeCouch, plant, pouf } from '../world/office';
+import { DESK_BOOKS, FLOOR_PLANTS, buildCurtain, buildDesk, buildRoundTable, starRug, coffeeTable, togoSofa, deskBooks, deskMug, loungeCouch, plant, pouf } from '../world/office';
 import { toon } from '../world/toon';
 import { ready, stage } from './stage';
 import { Laptop } from '../world/laptop';
@@ -72,6 +72,8 @@ const SHOW: Record<string, () => Shown> = {
     c.show(Number(q.get('open') ?? 0));
     return { object: c.group };
   },
+  // The lounge's starburst rug.
+  star_rug: () => ({ object: starRug(4.1, 3.5) }),
   // The lounge's Togo sofa.
   togo: () => ({ object: togoSofa() }),
   devices: () => {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { FLOOR, SLAB, STREET_Y, WALL_T, roofDrop } from '../../shared/layout';
+import { FOOTHILLS, LAKE, nearLoop } from '../../shared/scenic';
 import type { NightParts } from './outside';
 import { mergeByMaterial, mesh, toon } from './toon';
 import { buildTower } from './tower';
@@ -25,8 +26,10 @@ const ROAD = 8;
 const WALK = 2;
 /** How far out the city goes: past this the haze has it anyway. */
 const RADIUS = 330;
-/** Where the scenic loop's country is, south of the street (LOOP in shared/scenic.ts, with room to spare): no skyline there. */
+/** Where the scenic loop's country is, south of the street (LOOP in shared/scenic.ts, with room to spare): its skyline is only a backdrop for the office (see buildCity). */
 const COUNTRY = { minX: -240, maxX: 225, minZ: 15 } as const;
+/** How far out the office's skyline goes: inside the haze from the office floors (HAZE_MAX in sky.ts), and how tall its towers stand at the least, to rise over the haze near the ground. */
+const SKYLINE = { reach: 290, least: 55 } as const;
 /** One storey, and one bay of windows, in meters. */
 const STOREY = 3.3;
 const BAY = 2.8;
@@ -279,13 +282,17 @@ interface Car {
 }
 
 /**
- * The city round the rooftop bar, or with `skyline`, only its skyline: the towers out past the city's
- * middle ring all round, but for the country out of town to the south (the scenic loop's farm,
- * mountains and beach, see COUNTRY). It's the same city, laid out the same way, so the
+ * The city round the rooftop bar, or with `skyline`, only its skyline as the office sees it: the
+ * towers past the city's near ring, as far as the haze lets it see from down there (SKYLINE), at
+ * least so tall they rise over it. 'town' is all of them but in the country out of town to the
+ * south (the scenic loop's farm, pines, lake and mountains, see COUNTRY); 'country' is the ones out
+ * there, clear of the loop's road, its lake and hills, which the office only shows from inside
+ * (they'd stand in the fields you drive through). It's the same city, laid out the same way, so the
  * office sees the towers the roof does. The skyline stands on the street at the group's origin and
  * doesn't change with the floors (the towers are their full height from any roof).
  */
-export function buildCity(night: NightParts, { skyline = false }: { skyline?: boolean } = {}): City {
+export function buildCity(night: NightParts, { skyline: which }: { skyline?: 'town' | 'country' } = {}): City {
+  const skyline = !!which;
   const group = new THREE.Group();
   /** Everything down on the street, which is as far below the roof as the building is tall. */
   const street = new THREE.Group();
@@ -382,11 +389,28 @@ export function buildCity(night: NightParts, { skyline = false }: { skyline?: bo
     }
   }
 
-  // The skyline: the outer ring's towers all round the office, and the tallest of the middle ring's,
-  // but for the country the scenic loop runs through south of the street (its farm, pines, lake and
-  // mountains), where no tower stands on its road.
+  // The skyline: the middle and outer rings' towers all round the office, as far as it sees, and
+  // tall enough to show over the haze; in the country, none on the road, the lake or the hills.
   const inCountry = (l: Lot) => l.z + l.d / 2 > COUNTRY.minZ && l.x + l.w / 2 > COUNTRY.minX && l.x - l.w / 2 < COUNTRY.maxX;
-  if (skyline) lots.splice(0, lots.length, ...lots.filter((l) => (l.ring === 2 || (l.ring === 1 && l.h > 45)) && !inCountry(l)));
+  const clearOfLoop = (l: Lot) => {
+    for (const [dx, dz] of [[0, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const x = l.x + (dx * l.w) / 2;
+      const z = l.z + (dz * l.d) / 2;
+      const at = nearLoop(x, z);
+      if (at && at.off < 22) return false;
+      if (((x - LAKE.x) / (LAKE.rx + 12)) ** 2 + ((z - LAKE.z) / (LAKE.rz + 12)) ** 2 < 1) return false;
+    }
+    return FOOTHILLS.every(([hx, hz, hr]) => Math.hypot(l.x - hx, l.z - hz) > hr + Math.max(l.w, l.d) / 2 + 5);
+  };
+  if (skyline) {
+    const keep = lots.filter((l) => l.ring > 0 && Math.hypot(l.x, l.z) < SKYLINE.reach && (which === 'country' ? inCountry(l) && clearOfLoop(l) : !inCountry(l)));
+    for (const l of keep) {
+      // Taller, by as much as the lot's own shade picks (the same every time).
+      const pick = (Math.sin(l.x * 12.9898 + l.z * 78.233) * 43758.5453) % 1;
+      l.h = Math.max(l.h, SKYLINE.least + Math.abs(pick) * 60);
+    }
+    lots.splice(0, lots.length, ...keep);
+  }
 
   // The office's own building, a floor per project, from the street up to the roof, and the open
   // garage at the bottom: walled at the back and on the west side, columns along the other two.
