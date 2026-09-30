@@ -1,6 +1,6 @@
 /**
- * Office sounds, synthesized with Web Audio so there are no audio files to ship: the room's air and a
- * humming fridge, workers typing while they work, footsteps, the coffee machine, birds outside the
+ * Office sounds, synthesized with Web Audio so there are no audio files to ship: the room's air,
+ * workers typing while they work, footsteps, the coffee machine, birds outside the
  * windows by day and crickets at night, rain and thunder, the odd rustle or phone, the gong, the dog
  * barking, and the dings when a worker needs you. And the lounge jukebox, whose tunes are in music.ts,
  * and up on the roof, the wind, the city far below and the DJ's drum and bass (dnb.ts).
@@ -37,7 +37,6 @@ export interface Listener extends Pos {
 
 // The kitchen props (see KITCHEN).
 const COFFEE_MACHINE: Pos = { x: KITCHEN.machine.x, y: 1.4, z: KITCHEN.machine.z };
-const FRIDGE: Pos = { x: KITCHEN.fridgeAt.x, y: 1.1, z: KITCHEN.fridgeAt.z };
 /** Just outside the office's windows (not the loft's). */
 const WINDOWS: Pos[] = OPENINGS.filter((o) => o.y0 < 2).map((o) =>
   o.wall === 'south' || o.wall === 'north'
@@ -97,14 +96,14 @@ export class OfficeSound {
   private ambience!: GainNode;
   /** Worker dings, which you still want to hear from another tab. */
   private alerts!: GainNode;
-  /** The office's own hum (the room and the fridge), left behind going up on the roof… */
+  /** The office's own hum (the room), left behind going up on the roof… */
   private indoors!: GainNode;
   /** …where there's wind, and the city far below. */
   private outside!: GainNode;
   private outdoors = false;
   /**
    * On a map of its own (the castle): the room it is, where its gong hangs and where its windows are,
-   * with nothing of the office's in it (no phones, no fridge). Null in the office.
+   * with nothing of the office's in it (no phones). Null in the office.
    */
   private hall: { bounds: { minX: number; maxX: number; minZ: number; maxZ: number }; gong: Pos | null; windows: Pos[] } | null = null;
   /** How many rows the floor's back office is built out: in there you're indoors too. */
@@ -114,7 +113,6 @@ export class OfficeSound {
   private volume = 0.7;
   private muted = false;
   private typists = new Map<string, Typist>();
-  private fridge: { gain: GainNode; on: boolean; next: number } | null = null;
   private nextBird = 0;
   private nextCricket = 0;
   private nextPhone = 0;
@@ -239,7 +237,6 @@ export class OfficeSound {
     this.applyJukebox();
     this.applyVisibility();
     this.startRoomTone();
-    this.startFridge();
     this.startWind();
     this.applyOutdoors();
     this.applyDj();
@@ -295,7 +292,6 @@ export class OfficeSound {
     const now = ctx.currentTime;
     this.hearJukebox(now);
     this.scheduleTyping(now);
-    this.tickFridge(now);
     const { rain, night } = this.weather;
     if (now >= this.nextBird) {
       // Birds sing by day, and not in the rain.
@@ -1124,45 +1120,6 @@ export class OfficeSound {
     rumble.start();
     air.start();
     swell.start();
-  }
-
-  private startFridge() {
-    const ctx = this.ctx!;
-    const hum = ctx.createOscillator();
-    hum.type = 'sawtooth';
-    hum.frequency.value = 50;
-    const whine = ctx.createOscillator();
-    whine.frequency.value = 120;
-    const whineG = ctx.createGain();
-    whineG.gain.value = 0.3;
-    const gain = ctx.createGain();
-    gain.gain.value = 0;
-    const tone = biquad(ctx, 'lowpass', 220, 0.7);
-    hum.connect(tone);
-    whine.connect(whineG).connect(tone);
-    const out = this.panner(FRIDGE, 1, 1.6);
-    tone.connect(gain).connect(out).connect(this.indoors);
-    hum.start();
-    whine.start();
-    this.fridge = { gain, on: false, next: ctx.currentTime + rand(3, 12) };
-  }
-
-  /** The compressor kicks on for a while, then clunks off. */
-  private tickFridge(now: number) {
-    const f = this.fridge;
-    if (!f || now < f.next) return;
-    // No fridge in a castle: it goes quiet, and doesn't clunk.
-    if (this.hall) {
-      f.on = false;
-      f.gain.gain.setTargetAtTime(0, now, 0.3);
-      f.next = now + 20;
-      return;
-    }
-    f.on = !f.on;
-    f.gain.gain.setTargetAtTime(f.on ? 0.06 : 0, now, f.on ? 0.6 : 0.3);
-    f.next = now + (f.on ? rand(25, 50) : rand(20, 45));
-    this.play(pick(this.buf.steps), { at: FRIDGE, gain: 0.25, rate: 0.6, ref: 1, rolloff: 1.6, dest: this.indoors });
-    this.count(f.on ? 'fridgeOn' : 'fridgeOff');
   }
 
   /** A few chirps from outside one of the windows. */
