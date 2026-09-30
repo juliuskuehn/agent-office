@@ -290,11 +290,12 @@ export const JUKEBOX = { x: 3.4, y: 1, z: 0, width: 3.2, depth: 1.4, height: 1.4
 export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, height: 1.9 } as const;
 
 /**
- * The bookshelf of the project's docs (every Markdown file in it, see shared/docs.ts): one long, low
- * shelf against the west wall's glass, north of the exit door (to its right, seen from inside), clear
- * of the ladder, facing into the room (+x). `width` runs along the wall.
+ * The bookshelf of the project's docs (every Markdown file in it, see shared/docs.ts): a donut, a
+ * ring of shelf standing up on its edge against the west wall's glass, north of the exit door (to
+ * its right, seen from inside), clear of the ladder, facing into the room (+x). `width` is across
+ * it along the wall (the ring's diameter), `height` to its top, foot and all.
  */
-export const BOOKSHELF = { x: FLOOR.minX + 0.21, z: 3.25, rotY: Math.PI / 2, width: 4.6, depth: 0.4, height: 0.75 } as const;
+export const BOOKSHELF = { x: FLOOR.minX + 0.26, z: 3.25, rotY: Math.PI / 2, width: 2.4, depth: 0.46, height: 2.46 } as const;
 /** The floor it takes, back to the wall. */
 export const BOOKSHELF_BOX = {
   minX: FLOOR.minX,

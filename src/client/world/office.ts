@@ -1141,13 +1141,8 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
   // Little desk decorations, to the right of the laptop (at the round table, of the display). The
   // holiday present goes on the other side (DESK_SPOTS in holiday.ts).
   const [decoX, decoZ] = def.table ? [0.66, -0.12] : [width / 2 - 0.25, -0.2];
-  if (index % 2 === 0) {
-    // In the chair's color.
-    const mug = deskMug(PALETTE.chairs[index % 6]);
-    mug.position.set(decoX, height, decoZ);
-    group.add(mug);
-  } else {
-    // Or an iPhone, face up or face down, left there.
+  if (index % 2 === 1) {
+    // An iPhone, face up or face down, left there.
     const phone = iphone(['#4a4d52', '#d9d4ca', '#3c4a5c', '#b9c7c0'][Math.floor(index / 2) % 4], index % 4 === 1, 1.4);
     phone.position.set(decoX, height, decoZ + 0.12);
     phone.rotation.y = -0.4 + (index % 3) * 0.3;
