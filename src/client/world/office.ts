@@ -206,21 +206,13 @@ function onWall(side: Side, u: number): { x: number; z: number; rotY: number } {
   }
 }
 
-/** Chunky planks in a floor's colors. */
+/** Even planks in a floor's color: one shade throughout, with only the seams between them. */
 function paintPlanks(c: HTMLCanvasElement, p: FloorPalette) {
   const g = c.getContext('2d')!;
   g.fillStyle = p.floor;
   g.fillRect(0, 0, 512, 512);
-  for (let row = 0; row < 8; row++) {
-    const offset = (row % 2) * 128;
-    for (let col = -1; col < 3; col++) {
-      const x = col * 256 + offset;
-      g.fillStyle = (row + col) % 3 === 0 ? p.floorAlt : p.floor;
-      g.fillRect(x + 2, row * 64 + 2, 252, 60);
-    }
-    g.fillStyle = p.seam;
-    g.fillRect(0, row * 64, 512, 3);
-  }
+  g.fillStyle = p.seam;
+  for (let row = 0; row < 8; row++) g.fillRect(0, row * 64, 512, 3);
 }
 
 function floorTexture(width = FLOOR.maxX - FLOOR.minX, depth = FLOOR.maxZ - FLOOR.minZ): THREE.CanvasTexture {
