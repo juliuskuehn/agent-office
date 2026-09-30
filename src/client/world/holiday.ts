@@ -31,9 +31,9 @@ function onDesk(d: { x: number; z: number; rotY: number }, lx: number, lz: numbe
   return [d.x + lx * c + lz * s, d.z - lx * s + lz * c];
 }
 
-/** On every desk, in the back corner its own knick-knack leaves free (see buildDesk), facing whoever sits there. */
-const DESK_SPOTS: Spot[] = DESKS.map((d, i) => {
-  const [x, z] = onDesk(d, i % 3 === 1 ? 0.78 : -0.78, -0.28);
+/** On every desk, on the other side of the laptop from its own knick-knack (see buildDesk), facing whoever sits there. */
+const DESK_SPOTS: Spot[] = DESKS.map((d) => {
+  const [x, z] = d.table ? onDesk(d, -0.55, -0.07) : onDesk(d, -0.78, -0.28);
   return [x, DESK_SIZE.height, z, 0.12, d.rotY];
 });
 

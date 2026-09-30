@@ -6,12 +6,15 @@ import { mergeByMaterial, mesh, roundedBox, toon } from './toon';
 // Big signs hung from the ceiling over the desks, naming what each one is for ("Operations", "Code
 // cleanup"), so you can tell from across the room where to look (see shared/floorplan.ts). Each
 // hangs over the far edge of its desk, facing the chair: stand behind whoever sits there and it's
-// over their laptop. Desks come in back-to-back pairs, so a pair's two signs hang back to back too,
-// and from either side you read the one for the desk on that side; while the other desk has none,
-// the sign says the same on its back.
+// over their laptop. The back office's desks come in back-to-back pairs, so a pair's two signs hang
+// back to back too, and from either side you read the one for the desk on that side; while the other
+// desk has none, the sign says the same on its back. A place at a round table has its sign out over
+// it, toward its chair, saying it on both sides.
 
 /** How big a sign is, how high its middle hangs, and how far apart its two cords are. */
 export const SIGN = { width: 1.9, height: 0.62, depth: 0.04, y: 3.35, cords: 1.3 } as const;
+/** How wide a sign over a place at a round table is. */
+const ROUND_SIGN_WIDTH = 1.6;
 
 const PX = 1024;
 
@@ -47,9 +50,9 @@ function fit(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxH: nu
 }
 
 /** The sign's face: its paint, a line round the edge, and the text in the middle. */
-function paintFace(canvas: HTMLCanvasElement, label: DeskLabel) {
+function paintFace(canvas: HTMLCanvasElement, label: DeskLabel, width: number = SIGN.width) {
   const w = PX;
-  const h = Math.round((PX * SIGN.height) / SIGN.width);
+  const h = Math.round((PX * SIGN.height) / width);
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext('2d')!;
@@ -78,6 +81,8 @@ interface Hung {
   canvas: HTMLCanvasElement;
   tex: THREE.CanvasTexture;
   label: DeskLabel;
+  /** How wide it is (see ROUND_SIGN_WIDTH), which its face is painted for. */
+  width: number;
 }
 
 export interface DeskSigns {
@@ -97,10 +102,12 @@ export function buildDeskSigns(): DeskSigns {
     const root = new THREE.Group();
     root.position.set(desk.x, 0, desk.z);
     root.rotation.y = desk.rotY;
-    // Just off the far edge of the desk, so a back-to-back pair's signs don't touch.
-    const z = -DESK_SIZE.depth / 2 + SIGN.depth / 2 + 0.012;
+    // Just off the far edge of the desk, so a back-to-back pair's signs don't touch. At a round table,
+    // out over the place toward its chair instead, and narrower, so the four round it clear each other.
+    const z = desk.table ? 0.25 : -DESK_SIZE.depth / 2 + SIGN.depth / 2 + 0.012;
+    const width = desk.table ? ROUND_SIGN_WIDTH : SIGN.width;
     const parts = new THREE.Group();
-    const board = mesh(roundedBox(SIGN.width, SIGN.depth, SIGN.height, 0.08), toon(label.color), 0, SIGN.y, z, false);
+    const board = mesh(roundedBox(width, SIGN.depth, SIGN.height, 0.08), toon(label.color), 0, SIGN.y, z, false);
     board.rotation.x = Math.PI / 2;
     parts.add(board);
     const top = SIGN.y + SIGN.height / 2;
@@ -112,11 +119,11 @@ export function buildDeskSigns(): DeskSigns {
     }
     root.add(mergeByMaterial(parts));
     const canvas = document.createElement('canvas');
-    paintFace(canvas, label);
+    paintFace(canvas, label, width);
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
-    const face = new THREE.Mesh(new THREE.PlaneGeometry(SIGN.width - 0.06, SIGN.height - 0.06), new THREE.MeshBasicMaterial({ map: tex }));
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(width - 0.06, SIGN.height - 0.06), new THREE.MeshBasicMaterial({ map: tex }));
     face.position.set(0, SIGN.y, z + SIGN.depth / 2 + 0.003);
     root.add(face);
     if (back) {
@@ -126,7 +133,7 @@ export function buildDeskSigns(): DeskSigns {
       root.add(rear);
     }
     group.add(root);
-    return { root, key: keyOf(label, back), canvas, tex, label };
+    return { root, key: keyOf(label, back), canvas, tex, label, width };
   };
 
   const keyOf = (label: DeskLabel, back: boolean) => `${label.text}|${label.color}|${back}`;
@@ -140,8 +147,12 @@ export function buildDeskSigns(): DeskSigns {
     });
     h.tex.dispose();
   };
-  /** Whether the sign over `id` says it on its back too: its partner across the pair has no sign of its own there. */
+  /**
+   * Whether the sign over `id` says it on its back too: its partner across the pair has no sign of its
+   * own there, or it's over a place at a round table, whose back faces across the table.
+   */
   const twoSided = (id: string, labels: Record<string, DeskLabel>, built: (desk: DeskDef) => boolean) => {
+    if (DESK_BY_ID.get(id)?.table) return true;
     const other = PARTNER.get(id);
     const desk = other ? DESK_BY_ID.get(other) : undefined;
     return !!desk && built(desk) && !labels[desk.id];
@@ -150,7 +161,7 @@ export function buildDeskSigns(): DeskSigns {
   // The office's font may still be on its way the first time a sign is painted.
   void document.fonts?.ready.then(() => {
     for (const h of hung.values()) {
-      paintFace(h.canvas, h.label);
+      paintFace(h.canvas, h.label, h.width);
       h.tex.needsUpdate = true;
     }
   });
