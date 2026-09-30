@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, ROUND_TABLE, ROUND_TABLES, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
+import { ASHTRAY, BALCONY, BALCONY_DOOR, BEANBAGS, BOARDS, BOOKSHELF, DESKS, DESK_SIZE, ELEVATOR, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, LOUNGE, LOUNGE_DESKS, LOUNGE_TOGO, MACHINE_MONITOR, MEETING_BOARD, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PLANTS, ROUND_TABLE, ROUND_TABLES, SEATING_BY_ID, SLAB, STAIRS, STATIONS, STATION_AGENT, STOREY, STREET_Y, TV, WALL_HEIGHT, WALL_T, WINDOWS, WING, WING_DESKS, deskSeat, plantByWing, streetBelow, wallColumns, wingMinZ, wingRowZ, type DeskDef, type Opening, type Side, type StationKind } from '../../shared/layout';
 import { wallFacing, type WallId, type WallRect } from '../../shared/decor';
 import { deskPoint } from '../../shared/nav';
 import { FLOOR_PALETTES, type FloorPalette } from '../../shared/floors';
@@ -1180,6 +1180,60 @@ export function buildRoundTable(at: { x: number; z: number }): THREE.Group {
   return g;
 }
 
+/**
+ * A Togo sofa (after Ligne Roset's): no frame and no legs, just foam in pleated, rounded rolls down on
+ * the floor, the seat's rolls running from front to back, and the back's climbing up and leaning
+ * away. Built facing +z, LOUNGE_TOGO wide and deep, its seat LOUNGE_TOGO.seat high.
+ */
+export function togoSofa(color = '#cdb89c'): THREE.Group {
+  const g = new THREE.Group();
+  const fabric = toon(color);
+  const { width, seat } = LOUNGE_TOGO;
+  // [radius, height of its middle, how far forward], front to back and up the back.
+  const rolls: [number, number, number][] = [
+    [0.19, 0.19, 0.3],
+    [0.2, 0.2, 0.05],
+    [0.2, 0.21, -0.2],
+    [0.15, seat + 0.07, -0.34],
+    [0.13, seat + 0.2, -0.4],
+    [0.11, seat + 0.31, -0.43],
+  ];
+  // The back's rolls a little narrower the higher they climb, as the Togo's back is.
+  rolls.forEach(([r, y, z], i) => {
+    const narrow = Math.max(0, i - 2) * 0.06;
+    const roll = mesh(new THREE.CapsuleGeometry(r, width - 2 * r - narrow, 6, 16), fabric, 0, y, z);
+    roll.rotation.z = Math.PI / 2;
+    g.add(roll);
+  });
+  return g;
+}
+
+/** A place on the Togo (see LOUNGE_DESKS): its laptop on the low table in front, and the worker sunk into the sofa behind it. */
+function buildLoungeSeat(def: DeskDef): DeskView {
+  const group = new THREE.Group();
+  group.position.set(def.x, 0, def.z);
+  group.rotation.y = def.rotY;
+  const top = LOUNGE_DESKS.table.height;
+  const laptopAnchor = new THREE.Object3D();
+  laptopAnchor.position.set(0, top, -0.02);
+  laptopAnchor.scale.setScalar(1.05);
+  group.add(laptopAnchor);
+  const seatAnchor = new THREE.Object3D();
+  seatAnchor.position.set(0, LOUNGE_TOGO.seat - 0.03, 0.85);
+  seatAnchor.rotation.y = Math.PI;
+  seatAnchor.scale.setScalar(0.82);
+  group.add(seatAnchor);
+  // A merge's dance party: up on the low table, beside the laptop.
+  const stage = new THREE.Object3D();
+  stage.position.set(0.3, top, 0.1);
+  group.add(stage);
+  const vacancyY = top + 0.55;
+  const vacancy = vacancyMarker(vacancyY);
+  group.add(vacancy);
+  // No chair: the Togo is the seat.
+  return { def, group, laptopAnchor, seatAnchor, stage, chair: new THREE.Group(), vacancy, vacancyY };
+}
+
 /** The floating green "+" over an empty seat. */
 export function vacancyMarker(y: number): THREE.Group {
   const vacancy = new THREE.Group();
@@ -1404,10 +1458,10 @@ export function buildOffice(): Office {
   }
   const desks = new Map<string, DeskView>();
   DESKS.forEach((def, i) => {
-    const view = buildDesk(def, i, trimMat);
+    const view = def.lounge ? buildLoungeSeat(def) : buildDesk(def, i, trimMat);
     group.add(view.group);
     desks.set(def.id, view);
-    if (!def.table) {
+    if (!def.table && !def.lounge) {
       const hw = DESK_SIZE.width / 2 - 0.05;
       const hd = DESK_SIZE.depth / 2 - 0.02;
       colliders.push({ minX: def.x - hw, maxX: def.x + hw, minZ: def.z - hd, maxZ: def.z + hd, top: DESK_SIZE.height });
@@ -1520,26 +1574,42 @@ export function buildOffice(): Office {
   fixture('north', MACHINE_MONITOR.x, MACHINE_MONITOR.y, MACHINE_MONITOR.width + 0.2, MACHINE_MONITOR.height + 0.2);
 
   // The couch, its back to the room, turned from the model's +z to face out through the east wall's glass (+x).
+  const { x: lx, z: lz } = LOUNGE;
   const couch = loungeCouch();
-  couch.position.set(10.5, 0, 0);
+  couch.position.set(lx - 2.9, 0, lz);
   couch.rotation.y = Math.PI / 2;
   group.add(couch);
   // Its top on the seat cushions, so someone standing on the couch stands on them.
-  colliders.push({ minX: 10, maxX: 11, minZ: -2.2, maxZ: 2.2, top: 0.47 });
+  colliders.push({ minX: lx - 3.4, maxX: lx - 2.4, minZ: lz - 2.2, maxZ: lz + 2.2, top: 0.47 });
   seatable(couch, 'couch', 2.6, interactables);
 
   const table = coffeeTable();
-  table.position.set(13, 0, 0);
+  table.position.set(lx - 0.4, 0, lz);
   group.add(table);
-  colliders.push({ minX: 12.2, maxX: 13.8, minZ: -0.8, maxZ: 0.8, top: 0.46 });
-  const lounge = mesh(roundedBox(7, 0.02, 7, 1.2), toon(RUG_PINK), 13.4, 0.011, 0, false);
+  colliders.push({ minX: lx - 1.2, maxX: lx + 0.4, minZ: lz - 0.8, maxZ: lz + 0.8, top: 0.46 });
+  const lounge = mesh(roundedBox(LOUNGE.rug, 0.02, LOUNGE.rug, 1.2), toon(RUG_PINK), lx, 0.011, lz, false);
   group.add(lounge);
+
+  // Across from the couch, the Togo, and the low table in front of it where two workers code (LOUNGE_DESKS).
+  const togo = togoSofa();
+  togo.position.set(LOUNGE_TOGO.x, 0, LOUNGE_TOGO.z);
+  togo.rotation.y = -Math.PI / 2;
+  group.add(togo);
+  const T = LOUNGE_TOGO;
+  colliders.push({ minX: T.x - T.depth / 2, maxX: T.x + T.depth / 2, minZ: T.z - T.width / 2, maxZ: T.z + T.width / 2, top: T.seat });
+  const lt = LOUNGE_DESKS.table;
+  const low = new THREE.Group();
+  low.add(mesh(roundedBox(lt.depth, 0.04, lt.width, 0.03), toon(PALETTE.desk), 0, lt.height - 0.02, 0));
+  for (const sz of [-1, 1]) low.add(mesh(box(lt.depth - 0.06, lt.height - 0.04, 0.04), toon('#8f969f'), 0, (lt.height - 0.04) / 2, sz * (lt.width / 2 - 0.05)));
+  low.position.set(LOUNGE_DESKS.x, 0, lz);
+  group.add(low);
+  colliders.push({ minX: LOUNGE_DESKS.x - lt.depth / 2, maxX: LOUNGE_DESKS.x + lt.depth / 2, minZ: lz - lt.width / 2, maxZ: lz + lt.width / 2, top: lt.height });
 
   // A pouf either side of the lounge (the seats still called beanbags), turned to the TV like whoever sits on it.
   for (const [i, [color, x, z]] of (
     [
-      ['#06d6a0', 12.5, 3.5],
-      ['#ffd166', 14.5, -3.4],
+      ['#06d6a0', LOUNGE.x - 0.9, LOUNGE.z + 3.5],
+      ['#ffd166', LOUNGE.x + 1.1, LOUNGE.z - 3.4],
     ] as const
   ).entries()) {
     const id = `lounge-beanbag-${i + 1}`;
@@ -1602,7 +1672,7 @@ export function buildOffice(): Office {
     [t0.x + 1.2, t0.z - 1.2],
     [t0.x - 1.2, t0.z + 1.2],
     [t0.x + 1.2, t0.z + 1.2],
-    [13, 0],
+    [LOUNGE.x - 0.4, LOUNGE.z],
   ]) {
     const lamp = pendant(WALL_HEIGHT - lampY);
     lamp.position.set(x, lampY, z);

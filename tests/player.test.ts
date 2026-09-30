@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { PlayerController } from '../src/client/player.js';
 import type { Collider } from '../src/client/world/office.js';
-import { BALCONY, FLOOR, LOFT, SEATING_BY_ID, SLAB, STAIRS, seatAt, seatPlace } from '../src/shared/layout.js';
+import { BALCONY, FLOOR, LOFT, LOUNGE, SEATING_BY_ID, SLAB, STAIRS, seatAt, seatPlace } from '../src/shared/layout.js';
 
 /** The office floor: upstairs, over the garage, so off it you'd drop to the street. */
 const officeFloor: Collider = { ...FLOOR, bottom: -SLAB, top: 0 };
@@ -135,8 +135,9 @@ function overlaps(c: Collider, x: number, z: number) {
 }
 
 test('sits on the lounge couch until you walk off, then gets up clear of it', (t) => {
-  const couch: Collider = { minX: 10, maxX: 11, minZ: -2.2, maxZ: 2.2, top: 0.47 };
-  const table: Collider = { minX: 12.2, maxX: 13.8, minZ: -0.8, maxZ: 0.8, top: 0.46 };
+  const lx = LOUNGE.x;
+  const couch: Collider = { minX: lx - 3.4, maxX: lx - 2.4, minZ: -2.2, maxZ: 2.2, top: 0.47 };
+  const table: Collider = { minX: lx - 1.2, maxX: lx + 0.4, minZ: -0.8, maxZ: 0.8, top: 0.46 };
   const { player, keys, frames } = controller(t, [officeFloor, couch, table]);
   let gotUp = 0;
   player.onStand = () => gotUp++;
@@ -153,7 +154,7 @@ test('sits on the lounge couch until you walk off, then gets up clear of it', (t
   assert.equal(gotUp, 1);
   assert.ok(!overlaps(couch, player.pos.x, player.pos.z), `still on the couch at ${player.pos.toArray()}`);
   frames(10);
-  assert.ok(player.pos.x > 11.8, `walked toward the TV: x=${player.pos.x}`);
+  assert.ok(player.pos.x > lx - 1.6, `walked toward the table: x=${player.pos.x}`);
   assert.equal(player.pos.y, 0);
 });
 
