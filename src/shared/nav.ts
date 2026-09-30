@@ -63,7 +63,8 @@ function obstacles(wing: number): Obstacles {
   rects.push([togo.x - togo.depth / 2, togo.x + togo.depth / 2, togo.z - togo.width / 2, togo.z + togo.width / 2]);
   const lt = LOUNGE_DESKS.table;
   rects.push([LOUNGE_DESKS.x - lt.depth / 2, LOUNGE_DESKS.x + lt.depth / 2, lz - lt.width / 2, lz + lt.width / 2]);
-  for (const k of [KITCHEN.counter, KITCHEN.fridge]) rects.push([k.minX, k.maxX, k.minZ, k.maxZ]); // kitchen counter and fridge
+  const k = KITCHEN.counter;
+  rects.push([k.minX, k.maxX, k.minZ, k.maxZ]); // the kitchen's run of units
   for (const [x, z, s] of plantsAt(wing)) circles.push([x, z, 0.3 * s]);
   // The loft's posts, the stairs up to it, and the elevator shaft.
   for (const x of [LOFT.minX + 0.15, (LOFT.minX + LOFT.maxX) / 2]) circles.push([x, LOFT.minZ + 0.15, 0.14]);

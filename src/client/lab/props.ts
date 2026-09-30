@@ -17,7 +17,7 @@ import { buildCabinet } from '../world/cabinet';
 import { supercar } from '../world/cars';
 import { buildGong } from '../world/gong';
 import { buildJukebox } from '../world/jukebox';
-import { buildKitchen } from '../world/kitchen';
+import { buildKitchen, espressoMachine } from '../world/kitchen';
 import { preloadModels } from '../world/models';
 import { DESK_BOOKS, FLOOR_PLANTS, buildCurtain, buildDesk, buildRoundTable, starRug, coffeeTable, togoSofa, deskBooks, deskMug, loungeCouch, plant, pouf } from '../world/office';
 import { toon } from '../world/toon';
@@ -88,6 +88,8 @@ const SHOW: Record<string, () => Shown> = {
     return { object, update: (dt) => devices.forEach((d) => d.update(dt, undefined)) };
   },
   kitchen: () => ({ object: buildKitchen().group }),
+  // The kitchen's espresso machine, close up.
+  espresso: () => ({ object: espressoMachine() }),
   plants: () => {
     // The floor plants at scale 1 side by side, then the desk succulent, to compare them. A param of
     // its own: plant=<species> keeps just that one.

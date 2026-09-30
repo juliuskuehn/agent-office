@@ -1468,8 +1468,12 @@ export function buildOffice(): Office {
   // The ladder and its sign, up the west wall.
   fixture('west', LADDER.z + 0.6, WALL_HEIGHT / 2, LADDER.width + 2.4, WALL_HEIGHT);
 
-  // One big round rug under the round table and all its chairs.
-  for (const t of ROUND_TABLES) group.add(mesh(new THREE.CylinderGeometry(DESK_RUG.radius, DESK_RUG.radius, 0.02, 64), toon(DESK_RUG.color), t.x, 0.011, t.z, false));
+  // One big starburst rug under the round table and all its chairs, its hollows clear of them.
+  for (const t of ROUND_TABLES) {
+    const rug = starRug(DESK_RUG.radius + 0.9, DESK_RUG.radius + 0.9, 16);
+    rug.position.set(t.x, 0, t.z);
+    group.add(rug);
+  }
 
   const night: NightParts = {
     bulbs: [],
@@ -1743,15 +1747,15 @@ export function buildOffice(): Office {
   interactables.push(shelf.interactable);
   fixture('west', BOOKSHELF.z, (BOOKSHELF.height + 0.55) / 2, BOOKSHELF.width + 0.2, BOOKSHELF.height + 0.55);
 
-  // The kitchen, in the north-west corner: counter + coffee machine + fridge
+  // The kitchen, from the north-west corner: a long run of units with the espresso machine on it
   const kitchen = buildKitchen();
   group.add(kitchen.group);
   colliders.push(...kitchen.colliders);
   interactables.push(kitchen.interactable);
-  // Counter, coffee machine and fridge, in front of the north wall.
+  // The units, and the machine and the tap over them, in front of the north wall.
   fixture('north', (KITCHEN.counter.minX + KITCHEN.counter.maxX) / 2, 0.55, KITCHEN.counter.maxX - KITCHEN.counter.minX + 0.1, 1.1);
-  fixture('north', KITCHEN.machine.x, 0.9, 0.6, 1.8);
-  fixture('north', KITCHEN.fridgeAt.x, 1.1, 1.1, 2.2);
+  fixture('north', KITCHEN.machine.x, 1.2, 0.7, 0.7);
+  fixture('north', KITCHEN.sink.x, 1.2, 0.6, 0.6);
 
   // Plants around the room
   const plants: THREE.Group[] = [];

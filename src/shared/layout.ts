@@ -143,8 +143,8 @@ export const BEANBAGS: DeskDef[] = (
     [12.2, -5.6, -Math.PI / 2],
     [12.2, 5.6, -Math.PI / 2],
     [-16.1, 3, Math.PI / 2],
-    // Clear of the kitchen, and of the floor in front of the coffee machine.
-    [-9.8, -9.8, 0],
+    // Clear of the kitchen's east end, and of the floor in front of the coffee machine.
+    [-8.4, -9.6, 0],
     [-12.6, 9.2, Math.PI / 2],
     [-5.4, -9.8, 0],
   ] as const
@@ -301,21 +301,20 @@ export const BOOKSHELF_BOX = {
 } as const;
 
 /**
- * The kitchen along the north wall's west end, facing into the room (world/kitchen.ts): the model at
- * (x, z) turned by `rotY`, its counter with the coffee machine on it running east from the fridge in
- * the north-west corner. `counter` and `fridge` are what they take up, `machine` and `fridgeAt` where
- * the machine and the fridge stand (their sounds come from there), and `pour` where you stand to get a
- * coffee.
+ * The kitchen along the north wall's west end, facing into the room (world/kitchen.ts): one long run
+ * of chrome base units from the north-west corner, handleless fronts flush with the carcass, a sink,
+ * and an E61 espresso machine on the worktop. (x, z) is the run's middle; `counter` is what it takes
+ * up, `sink` where the sink is along it, `machine` where the machine stands (its sound comes from
+ * there), and `pour` where you stand to get a coffee.
  */
 export const KITCHEN = {
-  x: FLOOR.minX + 3.8,
-  z: FLOOR.minZ + 0.8,
+  x: FLOOR.minX + 4.15,
+  z: FLOOR.minZ + 0.675,
   rotY: 0,
-  counter: { minX: FLOOR.minX + 1.3, maxX: FLOOR.minX + 6.3, minZ: FLOOR.minZ + 0.3, maxZ: FLOOR.minZ + 1.3, top: 1.03 },
-  fridge: { minX: FLOOR.minX + 0.05, maxX: FLOOR.minX + 1.15, minZ: FLOOR.minZ + 0.3, maxZ: FLOOR.minZ + 1.3, top: 2.2 },
-  machine: { x: FLOOR.minX + 5, z: FLOOR.minZ + 0.8 },
-  fridgeAt: { x: FLOOR.minX + 0.6, z: FLOOR.minZ + 0.8 },
-  pour: { x: FLOOR.minX + 5, z: FLOOR.minZ + 2.1 },
+  counter: { minX: FLOOR.minX + 0.3, maxX: FLOOR.minX + 8, minZ: FLOOR.minZ + 0.3, maxZ: FLOOR.minZ + 1.05, top: 0.92 },
+  sink: { x: FLOOR.minX + 2.4 },
+  machine: { x: FLOOR.minX + 5.6, z: FLOOR.minZ + 0.64 },
+  pour: { x: FLOOR.minX + 5.6, z: FLOOR.minZ + 1.95 },
 } as const;
 
 export const SPAWN = { x: 8, z: 7 } as const;
