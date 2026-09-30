@@ -140,7 +140,7 @@ export class Sendoffs {
       walk: { root: model.root, way: [], next: 0, heading: model.root.rotation.y, stepIn: 0 },
       speed: WALK,
       hop: { from: pos.clone(), t: 0 },
-      chair: from || desk.def.beanbag ? null : desk.chair,
+      chair: from || desk.def.beanbag || desk.def.table ? null : desk.chair,
       spin: 0,
       scale,
       trail: [],
