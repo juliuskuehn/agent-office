@@ -15,6 +15,8 @@ export interface Kitchen {
   colliders: Collider[];
   /** The coffee machine: E at it for a minute of quicker feet and higher jumps. */
   interactable: Interactable;
+  /** The bottles at the end of the run: E at them to pour yourself a drink, as at the roof's bar. */
+  bar: Interactable;
 }
 
 /**
@@ -110,10 +112,17 @@ export function buildKitchen(): Kitchen {
   machine.userData.interact = interactable;
   group.add(machine);
 
+  // The bar: bottles and glasses at the east end of the worktop.
+  const bar: Interactable = { kind: 'bar', x: KITCHEN.bar.x, z: KITCHEN.pour.z, radius: 1.4, label: '🥃 Kitchen bar' };
+  const bottles = barBottles();
+  bottles.position.set(KITCHEN.bar.x - KITCHEN.x, H, KITCHEN.bar.z - KITCHEN.z);
+  bottles.userData.interact = bar;
+  group.add(bottles);
+
   group.position.set(KITCHEN.x, 0, KITCHEN.z);
   group.rotation.y = KITCHEN.rotY;
   const colliders: Collider[] = [{ ...KITCHEN.counter }];
-  return { group, colliders, interactable };
+  return { group, colliders, interactable, bar };
 }
 
 /**
@@ -196,4 +205,66 @@ export function espressoMachine(): THREE.Group {
   const machine = new THREE.Group();
   machine.add(mergeByMaterial(parts));
   return machine;
+}
+
+/**
+ * A home bar on the worktop, facing +z: a row of bottles along the back (gin in green glass, a square
+ * of whisky, rum, clear vodka, a red aperitivo, champagne in its foil, a bottle of red), and in front
+ * of them a few glasses, a cocktail shaker and a bowl of lemons.
+ */
+export function barBottles(): THREE.Group {
+  const parts = new THREE.Group();
+  const glass = (color: string) => toon(color);
+  /** A round bottle: body, shoulder, neck and cap. */
+  const bottle = (x: number, z: number, h: number, r: number, color: string, cap: string, neck = 0.1) => {
+    parts.add(mesh(new THREE.CylinderGeometry(r, r, h * 0.7, 18), glass(color), x, (h * 0.7) / 2, z));
+    parts.add(mesh(new THREE.CylinderGeometry(r * 0.35, r, h * 0.12, 18), glass(color), x, h * 0.76, z));
+    parts.add(mesh(new THREE.CylinderGeometry(r * 0.32, r * 0.35, neck, 12), glass(color), x, h * 0.82 + neck / 2, z, false));
+    parts.add(mesh(new THREE.CylinderGeometry(r * 0.38, r * 0.38, 0.03, 12), toon(cap), x, h * 0.82 + neck + 0.015, z, false));
+    // A label round the middle.
+    parts.add(mesh(new THREE.CylinderGeometry(r + 0.002, r + 0.002, h * 0.22, 18, 1, true), toon('#f4efe4'), x, h * 0.36, z, false));
+  };
+  bottle(-0.5, -0.12, 0.34, 0.045, '#3f7f5f', '#c9ccd1');
+  // The whisky: square, amber, with a cork.
+  parts.add(mesh(roundedBox(0.09, 0.22, 0.09, 0.012), glass('#b5651d'), -0.36, 0.11, -0.14));
+  parts.add(mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.06, 10), glass('#b5651d'), -0.36, 0.25, -0.14, false));
+  parts.add(mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.035, 10), toon('#8a5a3b'), -0.36, 0.295, -0.14, false));
+  parts.add(mesh(new THREE.BoxGeometry(0.092, 0.07, 0.004), toon('#1f2126'), -0.36, 0.11, -0.094, false));
+  bottle(-0.22, -0.12, 0.32, 0.042, '#6b3a1e', '#1f2126');
+  bottle(-0.1, -0.15, 0.36, 0.04, '#dfeff5', '#2a6f97');
+  bottle(0.02, -0.12, 0.3, 0.043, '#c0392b', '#1f2126');
+  // The champagne, its neck in gold foil.
+  bottle(0.15, -0.15, 0.38, 0.045, '#27402e', '#d9ab2e', 0.13);
+  parts.add(mesh(new THREE.CylinderGeometry(0.017, 0.03, 0.12, 12), toon('#d9ab2e'), 0.15, 0.38 * 0.82 + 0.06, -0.15, false));
+  bottle(0.29, -0.12, 0.36, 0.04, '#3b0f1c', '#6b1a2a');
+  // Glasses: two tumblers, a coupe and a wine glass, see-through-ish.
+  const clear = new THREE.MeshBasicMaterial({ color: '#e6f4fb', transparent: true, opacity: 0.45, depthWrite: false });
+  for (const x of [-0.42, -0.3]) parts.add(mesh(new THREE.CylinderGeometry(0.038, 0.034, 0.09, 16), clear, x, 0.045, 0.1, false));
+  for (const [x, top] of [
+    [-0.14, 'coupe'],
+    [0.0, 'wine'],
+  ] as const) {
+    parts.add(mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.004, 16), clear, x, 0.002, 0.1, false));
+    parts.add(mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.1, 8), clear, x, 0.054, 0.1, false));
+    const bowl = top === 'coupe' ? new THREE.SphereGeometry(0.05, 16, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2) : new THREE.SphereGeometry(0.042, 16, 10, 0, Math.PI * 2, Math.PI / 3, (Math.PI * 2) / 3);
+    const b = mesh(bowl, clear, x, top === 'coupe' ? 0.16 : 0.15, 0.1, false);
+    if (top === 'coupe') b.scale.y = 0.6;
+    parts.add(b);
+  }
+  // The shaker, and a bowl of lemons.
+  parts.add(mesh(new THREE.CylinderGeometry(0.045, 0.038, 0.17, 18), STEEL, 0.16, 0.085, 0.1));
+  parts.add(mesh(new THREE.CylinderGeometry(0.03, 0.045, 0.06, 18), CHROME, 0.16, 0.2, 0.1));
+  parts.add(mesh(new THREE.SphereGeometry(0.1, 20, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), STEEL, 0.33, 0.1, 0.1));
+  for (const [dx, dz] of [
+    [-0.03, -0.02],
+    [0.03, 0.02],
+    [0.0, 0.035],
+  ]) {
+    const lemon = mesh(new THREE.SphereGeometry(0.035, 12, 8), toon('#f2d024'), 0.33 + dx, 0.06, 0.1 + dz);
+    lemon.scale.set(1, 0.85, 1.25);
+    parts.add(lemon);
+  }
+  const g = new THREE.Group();
+  g.add(mergeByMaterial(parts));
+  return g;
 }

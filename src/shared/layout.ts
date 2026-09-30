@@ -144,7 +144,8 @@ export const BEANBAGS: DeskDef[] = (
     [0.8, 10.2, Math.PI],
     [12.2, -5.6, -Math.PI / 2],
     [12.2, 5.6, -Math.PI / 2],
-    [-16.1, 3, Math.PI / 2],
+    // Out of the way of the donut bookshelf, down toward the south-west corner.
+    [-16.1, 9.6, Math.PI / 2],
     // In the north-west corner, where the kitchen was.
     [-13.2, -9.8, 0],
     [-12.6, 9.2, Math.PI / 2],
@@ -291,11 +292,11 @@ export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, 
 
 /**
  * The bookshelf of the project's docs (every Markdown file in it, see shared/docs.ts): a donut, a
- * ring of shelf standing up on its edge against the west wall's glass, north of the exit door (to
- * its right, seen from inside), clear of the ladder, facing into the room (+x). `width` is across
- * it along the wall (the ring's diameter), `height` to its top, foot and all.
+ * low ring of shelf lying on the floor by the west wall's glass, north of the exit door (to its right,
+ * seen from inside), clear of the ladder. You walk round it and pull the books out sideways. (x, z) is
+ * its middle, `width` and `depth` across it (its diameter), `height` to its top; it faces the room (+x).
  */
-export const BOOKSHELF = { x: FLOOR.minX + 0.26, z: 3.25, rotY: Math.PI / 2, width: 2.4, depth: 0.46, height: 2.46 } as const;
+export const BOOKSHELF = { x: FLOOR.minX + 1.65, z: 3.25, rotY: Math.PI / 2, width: 2.5, depth: 2.5, height: 0.8 } as const;
 /** The floor it takes, back to the wall. */
 export const BOOKSHELF_BOX = {
   minX: FLOOR.minX,
@@ -308,9 +309,10 @@ export const BOOKSHELF_BOX = {
  * The kitchen on the north wall, in the middle of its glass west of the elevator (from the west
  * corner to the elevator's shaft, 7.2 m from the middle), behind the round table, facing into the
  * room (world/kitchen.ts): one long run of chrome base units, handleless fronts flush with the
- * carcass, a sink, and an E61 espresso machine on the worktop. (x, z) is the run's middle; `counter`
- * is what it takes up, `sink` where the sink is along it, `machine` where the machine stands (its
- * sound comes from there), and `pour` where you stand to get a coffee.
+ * carcass, a sink, an E61 espresso machine and the bottles of a bar on the worktop. (x, z) is the
+ * run's middle; `counter` is what it takes up, `sink` where the sink is along it, `machine` where the
+ * machine stands (its sound comes from there), `bar` where the bottles stand, and `pour` where you
+ * stand to get a coffee.
  */
 const KITCHEN_X = (FLOOR.minX + 7.2) / 2;
 export const KITCHEN = {
@@ -320,6 +322,7 @@ export const KITCHEN = {
   counter: { minX: KITCHEN_X - 3.85, maxX: KITCHEN_X + 3.85, minZ: FLOOR.minZ + 0.3, maxZ: FLOOR.minZ + 1.05, top: 0.92 },
   sink: { x: KITCHEN_X - 1.9 },
   machine: { x: KITCHEN_X + 1.6, z: FLOOR.minZ + 0.64 },
+  bar: { x: KITCHEN_X + 3.05, z: FLOOR.minZ + 0.64 },
   pour: { x: KITCHEN_X + 1.6, z: FLOOR.minZ + 1.95 },
 } as const;
 

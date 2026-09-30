@@ -17,7 +17,7 @@ import { buildCabinet } from '../world/cabinet';
 import { supercar } from '../world/cars';
 import { buildGong } from '../world/gong';
 import { buildJukebox } from '../world/jukebox';
-import { buildKitchen, espressoMachine } from '../world/kitchen';
+import { barBottles, buildKitchen, espressoMachine } from '../world/kitchen';
 import { preloadModels } from '../world/models';
 import { DESK_BOOKS, FLOOR_PLANTS, buildCurtain, buildDesk, buildRoundTable, starRug, coffeeTable, togoSofa, deskBooks, deskMug, loungeCouch, plant, pouf } from '../world/office';
 import { toon } from '../world/toon';
@@ -99,6 +99,8 @@ const SHOW: Record<string, () => Shown> = {
     object.add(iphone('#d9d4ca', true).translateX(-0.85));
     return { object };
   },
+  // The kitchen's bar: its bottles and glasses, close up.
+  bar_bottles: () => ({ object: barBottles() }),
   // The kitchen's espresso machine, close up.
   espresso: () => ({ object: espressoMachine() }),
   plants: () => {
