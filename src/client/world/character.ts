@@ -524,9 +524,9 @@ export class Person {
     return SKIN_TONES[this.look.skin];
   }
 
-  /** Who they are, their hair's color and their shirt's (their color), for a stand-in dressed like them. */
-  get who(): { name: string; hair: string; color: string } {
-    return { name: this.name, hair: HAIR_COLORS[this.look.hair], color: `#${this.shirt.color.getHexString()}` };
+  /** Who they are and their shirt's color (their color), for a stand-in dressed like them. */
+  get who(): { name: string; color: string } {
+    return { name: this.name, color: `#${this.shirt.color.getHexString()}` };
   }
 
   setLook(look: Look) {

@@ -19,6 +19,12 @@ export function saGrime(on: boolean) {
   grime.value = on ? 1 : 0;
 }
 
+/** Keeps `mat` clean of the grime (a person's skin and clothes): its own program, then, without the patch. */
+export function noGrime(mat: THREE.Material) {
+  mat.userData.noGrime = true;
+  mat.customProgramCacheKey = () => 'sa-no-grime';
+}
+
 const GRIME_PARS = /* glsl */ `
 uniform float saGrime;
 float saHash( vec3 p ) {
@@ -53,6 +59,8 @@ if ( saGrime > 0.0 ) {
 const skyPatch = THREE.Material.prototype.onBeforeCompile;
 THREE.Material.prototype.onBeforeCompile = function (shader, renderer) {
   skyPatch.call(this, shader, renderer);
+  // People aren't grimy (see noGrime).
+  if (this.userData.noGrime) return;
   if (!shader.fragmentShader.includes('vSkyWorld') || !shader.fragmentShader.includes('#include <lights_fragment_begin>')) return;
   shader.uniforms.saGrime = grime;
   shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>\n${GRIME_PARS}`).replace('#include <lights_fragment_begin>', `${GRIME}\n#include <lights_fragment_begin>`);

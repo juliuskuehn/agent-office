@@ -11,6 +11,8 @@ changing its script and running it again.
 | `scripts/build_<name>.py` | One model (or a small set), exported as `src/client/models/<name>.glb` |
 | `scripts/build_dog.py`, `scripts/dog_breeds.py` | The office dog in every breed (the presets are in `dog_breeds.py`), each exported as `src/client/models/dog-<breed>.glb` with the same bones, sockets, materials and clips |
 
+| `scripts/build_people.py` | The San Andreas look's people (realistic, made with MPFB), each exported as `src/client/models/person-<name>.glb` with the same Mixamo bones and part materials |
+
 A helper only one model needs lives in that model's script. One that several need can join the kit, as a new
 function: the kit's existing functions are what every script already counts on, so change them only with
 every script rebuilt and checked.
@@ -74,3 +76,22 @@ These are what the office's code counts on. A model that breaks one looks wrong 
 
 Commit the script and the `.glb` together. Two runs of a script make the same model but not the same
 bytes (the exporter's triangle order varies), so commit a `.glb` only when the model changed.
+
+## The people (MPFB)
+
+`build_people.py` makes its people with [MPFB](https://extensions.blender.org/add-ons/mpfb/), MakeHuman for
+Blender, which needs installing once, with the asset packs the people are dressed from (from
+[makehumancommunity.org](https://static.makehumancommunity.org/assets/assetpacks.html); the `files.` mirror is
+the quick one):
+
+```bash
+blender --factory-startup -b --command extension install-file -r user_default --enable add-on-mpfb-v2.0.17.zip
+```
+
+Then unzip `makehuman_system_assets_cc0.zip`, `shirts01_cc0.zip`, `pants02_ccby.zip` and `shoes01_cc0.zip` into
+MPFB's data folder (`~/Library/Application Support/Blender/5.2/extensions/.user/user_default/mpfb/data` on a
+Mac), or load each with MPFB's *Load pack from zip file*.
+
+The people's bodies, skins, hair, tops and boots are CC0. Their jeans are CC-BY, from the pants02 pack:
+`elvs_jeans_straight_leg` and `elvs_jeans_bootcut` by Elvaerwyn, and `punkduck_female_tight_jeans` and
+`punkduck_male_classic_jeans` by punkduck.

@@ -20,7 +20,7 @@ import { BUILDERS } from './world/styles';
 import { Court } from './world/court';
 import { buildRooftop, type Rooftop } from './world/rooftop';
 import { DrunkVision } from './world/drunk';
-import { buildHomies, SaStandIn, standInLook } from './world/homies';
+import { buildHomies, SaStandIn, standInModel } from './world/homies';
 import { SanAndreasLook, rememberSaLook, saGrime, saLookWanted } from './world/sanandreas';
 import { SaHud } from './ui/sahud';
 import { Booze, type Stage as Feeling } from './booze';
@@ -392,6 +392,7 @@ function setSa(on: boolean) {
   saGrime(on);
   saHud.show(on);
   if (on) {
+    homies.load();
     player.setView('third');
     player.camDist = 4.2;
     player.camPitch = 0.32;
@@ -416,11 +417,14 @@ function saStep(t: number, now: number) {
   for (const p of people) {
     let s = standIns.get(p);
     if (!s) {
-      const { name, hair, color } = p.who;
-      s = new SaStandIn(standInLook(name, p.skinColor, hair, color));
-      p.setStandIn(s.root);
+      const { name, color } = p.who;
+      const skin = new THREE.Color(p.skinColor);
+      s = new SaStandIn(standInModel(name, skin.r * 0.3 + skin.g * 0.59 + skin.b * 0.11 < 0.5), color);
       standIns.set(p, s);
     }
+    // Their own figure until the body's loaded.
+    if (!s.ready) continue;
+    if (s.root.parent !== p.root) p.setStandIn(s.root);
     s.follow(p.rig);
   }
   for (const p of standIns.keys()) if (!people.includes(p)) standIns.delete(p);
