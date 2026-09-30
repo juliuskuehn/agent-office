@@ -4,7 +4,7 @@
 // An office floor built out into the back office (see WING) has more of it to get round: the office's
 // helpers take how many rows it's built out (`wing`), and each level gets a grid of its own.
 
-import { BALCONY, BALCONY_DOOR, BEANBAGS, BOOKSHELF_BOX, DESK_SIZE, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, LOUNGE, LOUNGE_DESKS, LOUNGE_TOGO, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PARACHUTE, POLE, POLES, ROAD, ROUND_TABLE, ROUND_TABLES, STAIRS, STATIONS, WING, builtDesks, plantsAt, wingLevel, wingMinZ, type DeskDef } from './layout.js';
+import { BALCONY, BALCONY_DOOR, BEANBAGS, BOOKSHELF_BOX, DESK_SIZE, TOGO_CHAIR, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, EXIT_STAIRS, FLOOR, JUKEBOX, KIOSK, KITCHEN, LADDER, LOFT, LOUNGE, LOUNGE_DESKS, LOUNGE_TOGO, MEETING_ROOM, MEETING_SEATS, MEETING_TABLE, PARACHUTE, POLE, POLES, ROAD, ROUND_TABLE, ROUND_TABLES, STAIRS, STATIONS, WING, builtDesks, plantsAt, wingLevel, wingMinZ, type DeskDef } from './layout.js';
 
 
 export type Pt = [number, number];
@@ -51,8 +51,9 @@ function obstacles(wing: number): Obstacles {
   for (const d of builtDesks(wing)) {
     // A desk of its own faces ±z, so its top is axis-aligned; a place at a round table has the table's.
     if (!d.table) rects.push([d.x - hw, d.x + hw, d.z - hd, d.z + hd]);
-    const [cx, cz] = deskPoint(d, 0, 0.9);
-    circles.push([cx, cz, 0.35]); // the chair
+    // The chair: at the round table a Togo armchair, deeper than a desk chair.
+    const [cx, cz] = deskPoint(d, 0, d.table ? TOGO_CHAIR.at : 0.9);
+    circles.push([cx, cz, d.table ? TOGO_CHAIR.radius : 0.35]);
   }
   const { x: lx, z: lz } = LOUNGE;
   rects.push([lx - 3.4, lx - 2.4, lz - 2.2, lz + 2.2]); // couch
@@ -71,8 +72,8 @@ function obstacles(wing: number): Obstacles {
   rects.push([STAIRS.fromX, STAIRS.toX, STAIRS.minZ - 0.1, STAIRS.maxZ]);
   rects.push([ELEVATOR.x - ELEVATOR.width / 2, ELEVATOR.x + ELEVATOR.width / 2, FLOOR.minZ, ELEVATOR_FRONT]);
   // The whiteboard on its wheels, as world/whiteboard.ts puts it.
-  // The jukebox, against the east wall.
-  rects.push([JUKEBOX.x - JUKEBOX.depth / 2 - 0.05, FLOOR.maxX, JUKEBOX.z - JUKEBOX.width / 2 - 0.05, JUKEBOX.z + JUKEBOX.width / 2 + 0.05]);
+  // The jukebox, the AirPod lying in the middle of the room.
+  rects.push([JUKEBOX.x - JUKEBOX.depth / 2 - 0.05, JUKEBOX.x + JUKEBOX.depth / 2 + 0.05, JUKEBOX.z - JUKEBOX.width / 2 - 0.05, JUKEBOX.z + JUKEBOX.width / 2 + 0.05]);
   // The bookshelf against the west wall, as world/bookshelf.ts puts it.
   const b = BOOKSHELF_BOX;
   rects.push([b.minX, b.maxX, b.minZ, b.maxZ]);
@@ -284,8 +285,11 @@ export class NavGrid {
           : seat.wing
             ? // In the back office the chair has its back to a wall or the next row: out to the side of it instead.
               [deskPoint(seat, side * 0.7, 0.95), deskPoint(seat, side * 0.95, 1.25)]
-            : // At the meeting table there's less room behind the chair, before the glass.
-              [deskPoint(seat, side * 0.7, 0.95), deskPoint(seat, side * 0.7, seat.room ? 1.4 : 1.75)];
+            : seat.table
+              ? // At a round table, off the side of its Togo armchair, which is wider than a desk chair.
+                [deskPoint(seat, side * 0.7, 0.95), deskPoint(seat, side * 0.95, 1.75)]
+              : // At the meeting table there's less room behind the chair, before the glass.
+                [deskPoint(seat, side * 0.7, 0.95), deskPoint(seat, side * 0.7, seat.room ? 1.4 : 1.75)];
       // A bean bag or a kiosk can stand with one side up against something (the elevator, by the queue).
       const blocked = !!(seat.beanbag || seat.station) && !this.walkable(down[0], down[1]);
       const pts = [down, ...this.route(back, to)];

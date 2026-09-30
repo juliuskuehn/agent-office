@@ -38,6 +38,8 @@ export interface DeskDef {
 const DESK_WIDTH = 2.2;
 const DESK_DEPTH = 1.1;
 export const DESK_SIZE = { width: DESK_WIDTH, depth: DESK_DEPTH, height: 0.78 } as const;
+/** The Togo armchair at each place at a round table (Ligne Roset's, like the lounge's sofa): how wide it is, how far back from the place its middle is, and the floor it takes, round. */
+export const TOGO_CHAIR = { width: 0.87, at: 1.2, radius: 0.42 } as const;
 
 /**
  * The big round table the office's desks are places at, eight round it: its middle, how big it is
@@ -143,10 +145,11 @@ export const BEANBAGS: DeskDef[] = (
     [12.2, -5.6, -Math.PI / 2],
     [12.2, 5.6, -Math.PI / 2],
     [-16.1, 3, Math.PI / 2],
-    // Clear of the kitchen's east end, and of the floor in front of the coffee machine.
-    [-8.4, -9.6, 0],
+    // In the north-west corner, where the kitchen was.
+    [-13.2, -9.8, 0],
     [-12.6, 9.2, Math.PI / 2],
-    [-5.4, -9.8, 0],
+    // East of the kitchen, clear of the floor in front of it.
+    [0.6, -9.8, 0],
   ] as const
 ).map(([x, z, rotY], i) => ({ id: `beanbag-${i + 1}`, x, z, rotY, label: `Bean bag ${i + 1}`, beanbag: true }));
 
@@ -281,8 +284,8 @@ export const TV = { x: FLOOR.maxX - 0.1, y: BOARD_ROW_Y, z: eastBay(4), ...BOARD
  * they are, facing into the room. 23:13, what its screen is drawn for.
  */
 export const MACHINE_MONITOR = { x: FLOOR.maxX, y: BOARD_ROW_Y, z: eastBay(5), width: (BOARD_SIZE.height * 23) / 13, height: BOARD_SIZE.height } as const;
-/** The lounge jukebox, a giant AirPod lying on the floor along the east wall south of the couch, facing into the room. `width` runs along the wall; `y` is its speaker. */
-export const JUKEBOX = { x: FLOOR.maxX - 1, y: 1, z: 5.8, width: 3.2, depth: 1.4, height: 1.4 } as const;
+/** The jukebox, a giant AirPod lying on the floor in the middle of the room, between the round table and the lounge, facing the table (-x). `width` runs along z; `y` is its speaker. */
+export const JUKEBOX = { x: 3.4, y: 1, z: 0, width: 3.2, depth: 1.4, height: 1.4 } as const;
 /** The arcade cabinet, against the east wall between the jukebox and the loft, facing into the room. `width` runs along the wall. */
 export const CABINET = { x: FLOOR.maxX - 0.42, z: 7.05, width: 0.8, depth: 0.8, height: 1.9 } as const;
 
@@ -301,20 +304,22 @@ export const BOOKSHELF_BOX = {
 } as const;
 
 /**
- * The kitchen along the north wall's west end, facing into the room (world/kitchen.ts): one long run
- * of chrome base units from the north-west corner, handleless fronts flush with the carcass, a sink,
- * and an E61 espresso machine on the worktop. (x, z) is the run's middle; `counter` is what it takes
- * up, `sink` where the sink is along it, `machine` where the machine stands (its sound comes from
- * there), and `pour` where you stand to get a coffee.
+ * The kitchen on the north wall, in the middle of its glass west of the elevator (from the west
+ * corner to the elevator's shaft, 7.2 m from the middle), behind the round table, facing into the
+ * room (world/kitchen.ts): one long run of chrome base units, handleless fronts flush with the
+ * carcass, a sink, and an E61 espresso machine on the worktop. (x, z) is the run's middle; `counter`
+ * is what it takes up, `sink` where the sink is along it, `machine` where the machine stands (its
+ * sound comes from there), and `pour` where you stand to get a coffee.
  */
+const KITCHEN_X = (FLOOR.minX + 7.2) / 2;
 export const KITCHEN = {
-  x: FLOOR.minX + 4.15,
+  x: KITCHEN_X,
   z: FLOOR.minZ + 0.675,
   rotY: 0,
-  counter: { minX: FLOOR.minX + 0.3, maxX: FLOOR.minX + 8, minZ: FLOOR.minZ + 0.3, maxZ: FLOOR.minZ + 1.05, top: 0.92 },
-  sink: { x: FLOOR.minX + 2.4 },
-  machine: { x: FLOOR.minX + 5.6, z: FLOOR.minZ + 0.64 },
-  pour: { x: FLOOR.minX + 5.6, z: FLOOR.minZ + 1.95 },
+  counter: { minX: KITCHEN_X - 3.85, maxX: KITCHEN_X + 3.85, minZ: FLOOR.minZ + 0.3, maxZ: FLOOR.minZ + 1.05, top: 0.92 },
+  sink: { x: KITCHEN_X - 1.9 },
+  machine: { x: KITCHEN_X + 1.6, z: FLOOR.minZ + 0.64 },
+  pour: { x: KITCHEN_X + 1.6, z: FLOOR.minZ + 1.95 },
 } as const;
 
 export const SPAWN = { x: 8, z: 7 } as const;

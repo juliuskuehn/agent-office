@@ -178,7 +178,8 @@ export class Departures {
     else model.root.rotation.set(0, desk.def.rotY + Math.PI, 0);
     model.root.scale.setScalar(scale);
     model.leave(pick(FAREWELLS));
-    const chair = desk.def.beanbag || from ? null : desk.chair;
+    // A Togo at a round table doesn't swivel; an office chair does.
+    const chair = desk.def.beanbag || desk.def.table || from ? null : desk.chair;
     const { way, chute: up } = this.ways().home(desk.def, from);
     const chute: Chute | null = up ? { phase: 'walk', t: 0, color: pick(CANOPIES), canopy: null, from: new THREE.Vector3(), vel: new THREE.Vector3(), land: new THREE.Vector3(), angle: 0, radius: 0, height: 1 } : null;
     this.leavers.push({ model, deskId: desk.def.id, way, next: 0, t: from ? PACK + HOP : 0, seat, heading: model.root.rotation.y, stepIn: 0, chair, spin: 0, scale, gone: 0, chute });
