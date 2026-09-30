@@ -60,7 +60,8 @@ const SHOW: Record<string, () => Shown> = {
     DESKS.filter((d) => d.table).forEach((def, i) => {
       const desk = buildDesk({ ...def, x: def.x - t.x, z: def.z - t.z }, i, toon('#e8a87c'));
       desk.vacancy.visible = false;
-      const d = new Laptop('display');
+      const d = new Laptop(desk.imac === undefined ? 'display' : 'imac', desk.imac);
+      if (desk.idle) desk.idle.visible = false;
       desk.laptopAnchor.add(d.root);
       displays.push(d);
       object.add(desk.group);
