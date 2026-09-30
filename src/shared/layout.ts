@@ -30,24 +30,21 @@ const DESK_DEPTH = 1.1;
 export const DESK_SIZE = { width: DESK_WIDTH, depth: DESK_DEPTH, height: 0.78 } as const;
 
 /**
- * The round tables the office's desks are places at, four round each: their middles, how big they
- * are (`radius`, and the same `height` as a desk), and how far out from the middle each place's laptop
- * sits (`place`). The chair is out from the laptop the way a desk's is (deskSeat), past the edge.
+ * The big round table the office's desks are places at, eight round it: its middle, how big it is
+ * (`radius`, and the same `height` as a desk), how many `places` it has and how far out from the
+ * middle each place's display sits (`place`). The chair is out from the display the way a desk's is
+ * (deskSeat), past the edge.
  */
-export const ROUND_TABLE = { radius: 1.25, height: DESK_SIZE.height, place: 0.62 } as const;
-export const ROUND_TABLES: readonly { x: number; z: number }[] = [
-  { x: -10.5, z: -4 },
-  { x: -1.5, z: -4 },
-  { x: -10.5, z: 4 },
-  { x: -1.5, z: 4 },
-];
+export const ROUND_TABLE = { radius: 2.4, height: DESK_SIZE.height, places: 8, place: 1.75 } as const;
+export const ROUND_TABLES: readonly { x: number; z: number }[] = [{ x: -6, z: 0 }];
 
 function buildDesks(): DeskDef[] {
   const desks: DeskDef[] = [];
   let n = 1;
   for (const table of ROUND_TABLES) {
-    // A quarter turn apart, so each place still faces along x or z: south, north, east, then west.
-    for (const rotY of [0, Math.PI, Math.PI / 2, -Math.PI / 2]) {
+    // Evenly round it, the first on the south side, facing north.
+    for (let k = 0; k < ROUND_TABLE.places; k++) {
+      const rotY = (k * Math.PI * 2) / ROUND_TABLE.places;
       const x = table.x + Math.sin(rotY) * ROUND_TABLE.place;
       const z = table.z + Math.cos(rotY) * ROUND_TABLE.place;
       desks.push({ id: `desk-${n}`, x, z, rotY, label: `Desk ${n}`, table });
@@ -96,7 +93,9 @@ export function wingRowZ(row: number): number {
 export const WING_DESKS: DeskDef[] = Array.from({ length: WING.rows }, (_, i) => {
   const z = wingRowZ(i + 1);
   const x = (WING.minX + WING.maxX) / 2;
-  const n = DESKS.length + 2 * i + 1;
+  // Numbered on from where the room's desks ended when there were sixteen, so a back office's desks
+  // (and whoever sits at them) keep their ids.
+  const n = 17 + 2 * i;
   return [
     { id: `desk-${n}`, x, z: z - DESK_DEPTH / 2, rotY: Math.PI, label: `Desk ${n}`, wing: i + 1 },
     { id: `desk-${n + 1}`, x, z: z + DESK_DEPTH / 2, rotY: 0, label: `Desk ${n + 1}`, wing: i + 1 },

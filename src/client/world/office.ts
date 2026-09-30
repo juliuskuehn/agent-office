@@ -203,8 +203,8 @@ function onWall(side: Side, u: number): { x: number; z: number; rotY: number } {
 const OFFICE_FLOOR = { floor: '#6e7279' };
 /** The pink of the rug in front of the TV, which the big rug under the desks is too. */
 const RUG_PINK = '#ffc6ff';
-/** The big rug all the desks stand on. */
-const DESK_RUG = { color: RUG_PINK, minX: -14.2, maxX: 2.2, minZ: -6.6, maxZ: 6.6 } as const;
+/** The big round rug the round table stands on, its chairs and all. */
+const DESK_RUG = { color: RUG_PINK, radius: 4.4 } as const;
 
 /** Even planks of one shade throughout, with only the seams between them (if they have any). */
 function paintPlanks(c: HTMLCanvasElement, colors: { floor: string; seam?: string }) {
@@ -1124,9 +1124,9 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
     // Modesty panel facing away from the worker
     group.add(mesh(box(width - 0.3, 0.32, 0.03), trimMat, 0, height - 0.26, -depth / 2 + 0.06));
   }
-  // Little desk decorations, to the right of the laptop: at a round table, halfway round to the next
-  // place. The holiday present goes on the other side (DESK_SPOTS in holiday.ts).
-  const [decoX, decoZ] = def.table ? [0.55, -0.07] : [width / 2 - 0.25, -0.2];
+  // Little desk decorations, to the right of the laptop (at the round table, of the display). The
+  // holiday present goes on the other side (DESK_SPOTS in holiday.ts).
+  const [decoX, decoZ] = def.table ? [0.66, -0.12] : [width / 2 - 0.25, -0.2];
   if (index % 2 === 0) {
     // In the chair's color.
     const mug = deskMug(PALETTE.chairs[index % 6]);
@@ -1139,9 +1139,10 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
     group.add(books);
   }
 
+  // Where the worker's laptop goes, or at the round table its display (see Laptop), a little smaller.
   const laptopAnchor = new THREE.Object3D();
   laptopAnchor.position.set(0, height, -0.06);
-  laptopAnchor.scale.setScalar(1.3);
+  laptopAnchor.scale.setScalar(def.table ? 1.1 : 1.3);
   group.add(laptopAnchor);
 
   // On the chair, facing the desk.
@@ -1168,7 +1169,7 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
 }
 
 /** A round table for four (see ROUND_TABLES): a round top on a pedestal, standing on a round foot. */
-function buildRoundTable(at: { x: number; z: number }): THREE.Group {
+export function buildRoundTable(at: { x: number; z: number }): THREE.Group {
   const { radius, height } = ROUND_TABLE;
   const g = new THREE.Group();
   g.add(mesh(new THREE.CylinderGeometry(radius, radius, 0.07, 48), toon(PALETTE.desk), 0, height - 0.035, 0));
@@ -1323,9 +1324,8 @@ export function buildOffice(): Office {
   // The ladder and its sign, up the west wall.
   fixture('west', LADDER.z + 0.6, WALL_HEIGHT / 2, LADDER.width + 2.4, WALL_HEIGHT);
 
-  // One big rug under all the desks.
-  const r = DESK_RUG;
-  group.add(mesh(roundedBox(r.maxX - r.minX, 0.02, r.maxZ - r.minZ, 1), toon(r.color), (r.minX + r.maxX) / 2, 0.011, (r.minZ + r.maxZ) / 2, false));
+  // One big round rug under the round table and all its chairs.
+  for (const t of ROUND_TABLES) group.add(mesh(new THREE.CylinderGeometry(DESK_RUG.radius, DESK_RUG.radius, 0.02, 64), toon(DESK_RUG.color), t.x, 0.011, t.z, false));
 
   const night: NightParts = {
     bulbs: [],
@@ -1398,8 +1398,8 @@ export function buildOffice(): Office {
   // The round tables, and the desks: the places at them.
   for (const t of ROUND_TABLES) {
     group.add(buildRoundTable(t));
-    // Square, as colliders are, and a little inside the table's edge, so the chairs tuck in round it.
-    const r = ROUND_TABLE.radius * 0.8;
+    // Square, as colliders are, and inside the table's edge (its corners too), so the chairs tuck in round it.
+    const r = ROUND_TABLE.radius * 0.7;
     colliders.push({ minX: t.x - r, maxX: t.x + r, minZ: t.z - r, maxZ: t.z + r, top: ROUND_TABLE.height });
   }
   const desks = new Map<string, DeskView>();
@@ -1603,11 +1603,13 @@ export function buildOffice(): Office {
 
   // Ceiling lamps (cartoon pendants), hung on long cords down from the high ceiling.
   const lampY = 4.05;
+  const t0 = ROUND_TABLES[0];
   for (const [x, z] of [
-    [-10.5, -4],
-    [-1.5, -4],
-    [-10.5, 4],
-    [-1.5, 4],
+    // Four over the round table, and one over the lounge.
+    [t0.x - 1.2, t0.z - 1.2],
+    [t0.x + 1.2, t0.z - 1.2],
+    [t0.x - 1.2, t0.z + 1.2],
+    [t0.x + 1.2, t0.z + 1.2],
     [13, 0],
   ]) {
     const lamp = pendant(WALL_HEIGHT - lampY);

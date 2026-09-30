@@ -12,7 +12,7 @@ import { FAILS_TO_DESPAIR, outputFailed, toolAction } from '../shared/actions.js
 import { FLAG_BOLD, FLAG_DIM, FLAG_INVERSE, RGB_FLAG, isAgentEffort, isClaudeModel } from '../shared/protocol.js';
 import { WORKSPACE_FILES, WORKTREES_DIR, Worktrees, describeWork, workspaceOf, type WorktreeCleanup, type WorktreeRef, type WorktreeState } from './worktrees.js';
 import { normalizeRepo } from '../shared/floors.js';
-import { DESK_BY_ID, STATION_AGENT, deskBuilt } from '../shared/layout.js';
+import { DESK_BY_ID, STATION_AGENT, deskBuilt, nextFreeSeat } from '../shared/layout.js';
 import { QUEUE_AGENT_DISALLOWED_TOOLS, stationBrief } from './stations.js';
 import { officePrompt, type PromptSource } from './prompts.js';
 import { isBusy } from '../shared/status.js';
@@ -2214,7 +2214,11 @@ process.stdin.on('end', () => {
     if (!existsSync(this.statePath)) return;
     try {
       const saved = JSON.parse(readFileSync(this.statePath, 'utf8')) as (Partial<WorkerInfo> & { owner?: unknown; tracker?: unknown; codexTranscript?: unknown; hookToken?: unknown; pty?: any; midTurn?: unknown })[];
-      for (const s of saved) {
+      // A worker saved at a desk the room no longer has (it went from sixteen desks to eight) moves to
+      // the next free seat, once everyone whose seat is still there has sat back down in it.
+      const gone = (s: { deskId?: unknown }) => typeof s.deskId === 'string' && /^desk-\d+$/.test(s.deskId) && !DESK_BY_ID.has(s.deskId);
+      for (const s of [...saved.filter((s) => !gone(s)), ...saved.filter(gone)]) {
+        if (gone(s)) s.deskId = nextFreeSeat((id) => this.deskOccupied(id), this.wing())?.id;
         if (!s.id || !s.deskId || !DESK_BY_ID.has(s.deskId) || this.deskOccupied(s.deskId)) continue;
         const tracker = restoreTracker(s.tracker);
         const provider = s.kind === 'shell'
