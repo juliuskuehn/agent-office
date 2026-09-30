@@ -793,7 +793,8 @@ function buildWalls(group: THREE.Group, colliders: Collider[], openings: Opening
       let u = a;
       let floorU = a;
       for (const { u0: h0, u1: h1, stack } of columns) {
-        if (h0 < a || h1 > b) continue;
+        // (With room for rounding: panes laid out along a wall end where it does, give or take a hair.)
+        if (h0 < a - 1e-6 || h1 > b + 1e-6) continue;
         piece(u, h0, 0, top);
         let y = 0;
         for (const o of stack) {
