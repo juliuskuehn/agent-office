@@ -3,10 +3,11 @@ import { BOOKSHELF, BOOKSHELF_BOX } from '../../shared/layout';
 import { mergeByMaterial, mesh, textPlane, toon } from './toon';
 import type { Collider, Interactable } from './office';
 
-// The bookshelf against the west wall: one long, low shelf in a metallic grey frame, a grid of wire
-// at its back and ends, packed along its length with books of every size and color (a few leaning
-// over, a stack lying flat, a globe among them), and a "Docs" sign over it. E at it opens the
-// project's Markdown to read (ui/bookshelf.ts).
+// The bookshelf against the west wall: a donut, a ring standing up on its edge on a little foot, in a
+// metallic grey frame of wire grid (round its outside, its inside and across its back), packed all
+// the way round with books of every size and color standing out from the middle like spokes, a globe
+// at the bottom, and a "Docs" sign over it. E at it opens the project's Markdown to read
+// (ui/bookshelf.ts).
 
 export interface BookshelfModel {
   group: THREE.Group;
@@ -15,12 +16,12 @@ export interface BookshelfModel {
 }
 
 const SPINES = ['#b5413b', '#2a6f97', '#2d6a4f', '#e9c46a', '#6a4c93', '#f4a261', '#264653', '#ef476f', '#8ecae6', '#fffaf3'];
-/** The frame's bars, how far the shelf sits off the floor, how thick its plates are, and the grid's spacing and wire. */
-const BAR = 0.03;
-const BASE = 0.12;
-const PLATE = 0.025;
+/** The frame's edges, the foot it stands on, the grid's spacing and wire, and how deep the channel the books stand in is. */
+const BAR = 0.022;
+const FOOT = 0.06;
 const MESH = 0.1;
-const WIRE = 0.008;
+const WIRE = 0.007;
+const CHANNEL = 0.46;
 
 export function buildBookshelf(): BookshelfModel {
   const { width: W, depth: D, height: H } = BOOKSHELF;
@@ -29,76 +30,85 @@ export function buildBookshelf(): BookshelfModel {
   const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   const pick = <T>(xs: readonly T[]) => xs[Math.floor(rand() * xs.length)];
 
-  // Built facing +z, back against z = -D/2.
+  // Built facing +z, back against z = -D/2, the ring's middle (cy) up off the floor on its foot.
+  const R = W / 2;
+  const r = R - CHANNEL;
+  const cy = FOOT + R;
   const parts = new THREE.Group();
   const steel = toon('#8f969f');
-  const box = (w: number, h: number, d: number, mat: THREE.Material, x: number, y: number, z: number) => parts.add(mesh(new THREE.BoxGeometry(w, h, d), mat, x, y, z));
-  // The frame: a post at each corner, and the shelf's plate and the top's.
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(BAR, H, BAR, steel, sx * (W / 2 - BAR / 2), H / 2, sz * (D / 2 - BAR / 2));
-  box(W, PLATE, D, steel, 0, BASE, 0);
-  box(W, PLATE, D, steel, 0, H - PLATE / 2, 0);
-  // The wire grid across the back and both ends, between the plates.
-  const g0 = BASE + PLATE / 2;
-  const g1 = H - PLATE;
-  for (let x = -W / 2 + MESH; x < W / 2 - 0.01; x += MESH) box(WIRE, g1 - g0, WIRE, steel, x, (g0 + g1) / 2, -D / 2 + WIRE);
-  for (let y = g0 + MESH; y < g1 - 0.01; y += MESH) box(W, WIRE, WIRE, steel, 0, y, -D / 2 + WIRE);
-  for (const sx of [-1, 1]) {
-    for (let z = -D / 2 + MESH; z < D / 2 - 0.01; z += MESH) box(WIRE, g1 - g0, WIRE, steel, sx * (W / 2 - WIRE), (g0 + g1) / 2, z);
-    for (let y = g0 + MESH; y < g1 - 0.01; y += MESH) box(WIRE, WIRE, D, steel, sx * (W / 2 - WIRE), y, 0);
-  }
+  const ring = (radius: number, tube: number, z: number) => parts.add(mesh(new THREE.TorusGeometry(radius, tube, 6, 72), steel, 0, cy, z, false));
+  const rod = (len: number, x: number, y: number, z: number, along: 'x' | 'z', turn = 0) => {
+    const m = mesh(new THREE.CylinderGeometry(WIRE, WIRE, len, 4), steel, x, y, z, false);
+    if (along === 'z') m.rotation.x = Math.PI / 2;
+    else m.rotation.z = turn;
+    parts.add(m);
+  };
 
-  // The one long shelf of books, end to end.
-  const floor = BASE + PLATE / 2;
-  const room = Math.min(0.42, g1 - floor - 0.04);
-  const front = D / 2 - 0.02;
-  let x = -W / 2 + BAR + 0.02;
-  const end = W / 2 - BAR - 0.02;
-  // Now and then something that isn't a book: a globe, about a third of the way along.
-  let globe = true;
-  const globeAt = -W / 2 + W * (0.3 + rand() * 0.1);
-  while (x < end - 0.03) {
-    if (globe && x >= globeAt) {
-      box(0.16, 0.03, 0.16, steel, x + 0.13, floor + 0.015, 0);
-      parts.add(mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.07, 6), steel, x + 0.13, floor + 0.06, 0));
-      parts.add(mesh(new THREE.SphereGeometry(0.11, 14, 10), toon('#4cc9f0'), x + 0.13, floor + 0.18, 0));
-      parts.add(mesh(new THREE.SphereGeometry(0.075, 10, 8), toon('#80b918'), x + 0.16, floor + 0.21, 0.05));
-      globe = false;
-      x += 0.28;
-      continue;
+  // The frame's edges: round the front and the back of the outside and of the inside.
+  for (const z of [-D / 2 + BAR, D / 2 - BAR]) {
+    ring(R, BAR, z);
+    ring(r, BAR, z);
+  }
+  // The grid round the outside and the inside: rings every so deep, and wires front to back every so far round.
+  for (let z = -D / 2 + MESH; z < D / 2 - 0.02; z += MESH) {
+    ring(R, WIRE, z);
+    ring(r, WIRE, z);
+  }
+  for (const radius of [R, r]) {
+    const n = Math.round((2 * Math.PI * radius) / MESH);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      rod(D - 2 * BAR, Math.cos(a) * radius, cy + Math.sin(a) * radius, 0, 'z');
     }
-    // A stack lying flat, once in a while.
-    if (rand() < 0.07 && end - x > 0.32) {
-      let y = floor;
-      const n = 2 + Math.floor(rand() * 3);
-      for (let i = 0; i < n; i++) {
-        const t = 0.04 + rand() * 0.03;
-        const w = 0.22 + rand() * 0.08;
-        box(w, t, 0.18 + rand() * 0.06, toon(pick(SPINES)), x + 0.15 + (rand() - 0.5) * 0.03, y + t / 2, front - 0.13);
-        y += t;
-      }
-      x += 0.32;
-      continue;
-    }
+  }
+  // Across the back: rings between the inside and the outside, and spokes out from the one to the other.
+  const back = -D / 2 + WIRE;
+  for (let radius = r + MESH; radius < R - 0.02; radius += MESH) ring(radius, WIRE, back);
+  const spokes = Math.round((2 * Math.PI * R) / (MESH * 1.6));
+  for (let i = 0; i < spokes; i++) {
+    const a = (i / spokes) * Math.PI * 2;
+    const mid = (R + r) / 2;
+    rod(R - r, Math.cos(a) * mid, cy + Math.sin(a) * mid, back, 'x', a - Math.PI / 2);
+  }
+  // The foot it stands on, under the bottom of the ring.
+  parts.add(mesh(new THREE.BoxGeometry(0.7, FOOT, D + 0.06), steel, 0, FOOT / 2, 0));
+
+  // The books, all the way round: each standing on the outside of the ring (its bottom out, its top in
+  // toward the middle), spine to the front, but for the globe at the very bottom.
+  const front = D / 2 - 0.03;
+  const room = CHANNEL - 0.05;
+  const mid = (R + r) / 2;
+  const globeAt = -Math.PI / 2;
+  const globeGap = 0.34 / mid;
+  let a = globeAt + globeGap / 2;
+  const end = globeAt + Math.PI * 2 - globeGap / 2;
+  while (a < end) {
     const t = 0.035 + rand() * 0.04;
     const h = room * (0.62 + rand() * 0.38);
-    const d = 0.19 + rand() * 0.08;
-    if (x + t > end) break;
-    // The last one or two lean over on their neighbour when there's room.
-    const lean = end - x < 0.24 && end - x > 0.14 && rand() < 0.6;
-    const mat = toon(pick(SPINES));
-    if (lean) {
-      const g = new THREE.Group();
-      g.add(mesh(new THREE.BoxGeometry(t, h, d), mat, t / 2, h / 2, 0));
-      g.rotation.z = -0.32;
-      g.position.set(x + 0.01, floor, front - d / 2);
-      parts.add(g);
-      break;
-    }
-    box(t, h, d, mat, x + t / 2, floor + h / 2, front - d / 2);
+    const d = 0.2 + rand() * 0.08;
+    // How far round the book takes, measured where it's thickest: at its bottom, on the outside.
+    const da = t / (R - 0.02);
+    if (a + da > end) break;
+    const at = a + da / 2;
+    const book = mesh(new THREE.BoxGeometry(t, h, d), toon(pick(SPINES)), Math.cos(at) * (R - h / 2), cy + Math.sin(at) * (R - h / 2), front - d / 2);
+    // Its height along the spoke, bottom outward.
+    book.rotation.z = at + Math.PI / 2;
+    parts.add(book);
     // A band across some spines, near the top.
-    if (rand() < 0.35) box(t + 0.004, 0.018, d + 0.004, toon('#e9c46a'), x + t / 2, floor + h * 0.82, front - d / 2);
-    x += t + (rand() < 0.1 ? 0.012 : 0.002);
+    if (rand() < 0.3) {
+      const band = mesh(new THREE.BoxGeometry(t + 0.004, 0.016, d + 0.004), toon('#e9c46a'), Math.cos(at) * (R - h * 0.82), cy + Math.sin(at) * (R - h * 0.82), front - d / 2);
+      band.rotation.z = book.rotation.z;
+      parts.add(band);
+    }
+    a += da + (rand() < 0.08 ? 0.012 : 0.002);
   }
+  // The globe on its stand, at the bottom of the ring.
+  const bottom = cy - R + BAR;
+  parts.add(mesh(new THREE.BoxGeometry(0.16, 0.03, 0.16), steel, 0, bottom + 0.015, 0));
+  parts.add(mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.07, 6), steel, 0, bottom + 0.06, 0));
+  parts.add(mesh(new THREE.SphereGeometry(0.11, 14, 10), toon('#4cc9f0'), 0, bottom + 0.18, 0));
+  parts.add(mesh(new THREE.SphereGeometry(0.075, 10, 8), toon('#80b918'), 0.03, bottom + 0.21, 0.05));
+
   const group = new THREE.Group();
   group.add(mergeByMaterial(parts));
 
