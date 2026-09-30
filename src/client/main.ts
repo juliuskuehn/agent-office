@@ -4850,6 +4850,7 @@ function frame(ts?: number) {
     if (inOffice()) {
       office.stack.update(dt, [{ x: player.pos.x, y: player.pos.y, z: player.pos.z, grip }, ...[...remotes.values()].map((r) => ({ x: r.person.root.position.x, y: r.person.root.position.y, z: r.person.root.position.z, grip: r.grip }))], camera.position);
       office.jukebox.update(t, dt, sound.beat());
+      office.skyline.update(t, dt, sky.lampsOn);
     }
   }
   checkSmokeBreak(now);

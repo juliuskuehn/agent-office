@@ -25,6 +25,8 @@ const ROAD = 8;
 const WALK = 2;
 /** How far out the city goes: past this the haze has it anyway. */
 const RADIUS = 330;
+/** How far north of the office the skyline starts (see buildCity), clear of anything by the street. */
+const SKYLINE_SOUTH = 60;
 /** One storey, and one bay of windows, in meters. */
 const STOREY = 3.3;
 const BAY = 2.8;
@@ -276,7 +278,14 @@ interface Car {
   speed: number;
 }
 
-export function buildCity(night: NightParts): City {
+/**
+ * The city round the rooftop bar, or with `skyline`, only its skyline: the towers out past the city's
+ * middle ring to the north, where the country out of town (the scenic loop's farm, mountains and
+ * beach, all to the south) leaves room for them. It's the same city, laid out the same way, so the
+ * office sees the towers the roof does. The skyline stands on the street at the group's origin and
+ * doesn't change with the floors (the towers are their full height from any roof).
+ */
+export function buildCity(night: NightParts, { skyline = false }: { skyline?: boolean } = {}): City {
   const group = new THREE.Group();
   /** Everything down on the street, which is as far below the roof as the building is tall. */
   const street = new THREE.Group();
@@ -293,7 +302,7 @@ export function buildCity(night: NightParts): City {
   for (let i = 0; i < uv.count; i++) uv.setXY(i, (gp.getX(i) - STREET_X) / PERIOD + 0.5, (gp.getZ(i) - STREET_Z) / PERIOD + 0.5);
   const ground = new THREE.Mesh(groundGeo, new THREE.MeshToonMaterial({ map: groundTexture(), gradientMap: (toon('#fff') as THREE.MeshToonMaterial).gradientMap }));
   ground.receiveShadow = false;
-  street.add(ground);
+  if (!skyline) street.add(ground);
 
   // The blocks: parks now and then, and lots with a building on each, laid out once. How tall the
   // buildings stand depends on the roof (see raise, below).
@@ -373,10 +382,13 @@ export function buildCity(night: NightParts): City {
     }
   }
 
+  // The skyline: the outer ring's towers, north of the office.
+  if (skyline) lots.splice(0, lots.length, ...lots.filter((l) => l.ring === 2 && l.z < -SKYLINE_SOUTH));
+
   // The office's own building, a floor per project, from the street up to the roof, and the open
   // garage at the bottom: walled at the back and on the west side, columns along the other two.
-  const building = buildTower([], night);
-  group.add(building.group);
+  const building = skyline ? null : buildTower([], night);
+  if (building) group.add(building.group);
   const garage = new THREE.Group();
   const garageH = -STREET_Y - SLAB;
   const concrete = toon('#d3d6dd');
@@ -386,7 +398,7 @@ export function buildCity(night: NightParts): City {
   for (const x of [B.maxX - 0.25, -9.6, 0, 9.6]) garage.add(mesh(column, toon('#e6e8ee'), x, garageH / 2, B.maxZ - 0.25, false));
   for (const z of [-6.5, 6.5, B.minZ + 0.25]) garage.add(mesh(column, toon('#e6e8ee'), B.maxX - 0.25, garageH / 2, z, false));
   garage.add(mesh(new THREE.PlaneGeometry(B.maxX - B.minX, B.maxZ - B.minZ).rotateX(-Math.PI / 2), toon('#9a9ea8'), (B.minX + B.maxX) / 2, 0.03, (B.minZ + B.maxZ) / 2, false));
-  street.add(mergeByMaterial(garage));
+  if (!skyline) street.add(mergeByMaterial(garage));
   // Its plaza, with a few trees in front.
   parks.add(mesh(new THREE.PlaneGeometry(inner, inner).rotateX(-Math.PI / 2), toon('#cfc8b8'), blockAt(0, 0).x, 0.02, blockAt(0, 0).z, false));
   for (const [x, z] of [
@@ -402,7 +414,7 @@ export function buildCity(night: NightParts): City {
     t.position.set(x, 0, z);
     parks.add(t);
   }
-  street.add(mergeByMaterial(parks));
+  if (!skyline) street.add(mergeByMaterial(parks));
 
   // The buildings' walls (a material for each paint), their roofs, and what's on them.
   const gradient = (toon('#fff') as THREE.MeshToonMaterial).gradientMap;
@@ -508,7 +520,7 @@ export function buildCity(night: NightParts): City {
   lampGeo.setAttribute('position', new THREE.Float32BufferAttribute(lampPos, 3));
   const lamps = new THREE.Points(lampGeo, new THREE.PointsMaterial({ size: 4, map: glow, color: '#ffcf8a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
   lamps.visible = false;
-  street.add(lamps);
+  if (!skyline) street.add(lamps);
 
   // Cars, up and down the streets round the office's block.
   const cars: Car[] = [];
@@ -538,7 +550,7 @@ export function buildCity(night: NightParts): City {
   const tails = new THREE.InstancedMesh(new THREE.BoxGeometry(0.12, 0.25, 1.6).translate(-2.12, 0.95, 0), tailMat, cars.length);
   for (const m of [carMesh, heads, tails]) {
     m.frustumCulled = false;
-    street.add(m);
+    if (!skyline) street.add(m);
   }
   const place = new THREE.Matrix4();
   const q = new THREE.Quaternion();
@@ -585,7 +597,9 @@ export function buildCity(night: NightParts): City {
     c.lookAt(0, c.position.y, 0);
     sky.add(c);
   }
-  group.add(mergeByMaterial(sky));
+  if (!skyline) group.add(mergeByMaterial(sky));
+  // The skyline's towers are their full height whatever the roof (see rise), so they go up once.
+  if (skyline) raise(LAID_OUT);
 
   let floorsNow = 0;
   let wingsNow = '';
@@ -593,13 +607,14 @@ export function buildCity(night: NightParts): City {
   return {
     group,
     setFloors(floors, wings = []) {
+      if (skyline) return;
       floors = Math.max(1, floors);
       if (floors === floorsNow && wings.join() === wingsNow) return;
       floorsNow = floors;
       wingsNow = wings.join();
       const drop = roofDrop(floors);
       street.position.y = -drop;
-      building.set(floors, floors, wings);
+      building?.set(floors, floors, wings);
       // The buildings only change height up to six floors (see rise).
       const k = Math.min(1, drop / LAID_OUT);
       if (k !== riseNow) {
@@ -608,7 +623,7 @@ export function buildCity(night: NightParts): City {
       }
     },
     update(t, dt, dark) {
-      moveCars(dt);
+      if (!skyline) moveCars(dt);
       lamps.visible = dark > 0.02;
       lamps.material.opacity = dark;
       headMat.color.setScalar(0.75 + 0.25 * dark);
