@@ -1,7 +1,7 @@
 import './style.css';
 import * as THREE from 'three';
 import { sameLook } from '../shared/avatar';
-import { BALCONY, DESK_BY_ID, DESKS, ELEVATOR, ELEVATOR_CAR, FLOOR, GOLF_HOLE, LADDER, POLE, POLES, SLAB, STATION_AGENT, STOREY, WALL_HEIGHT, WALL_T, WING, WING_DESKS, beanbagsOut, deskBuilt, deskSeat, inElevator, inWing, roofDrop, seatPlace, streetBelow, vacantSeats, wingMinZ, wingRowZ, type DeskDef, type SeatDef, type SeatPlace, type StationKind } from '../shared/layout';
+import { BALCONY, DESK_BY_ID, DESKS, ELEVATOR, KITCHEN, ELEVATOR_CAR, FLOOR, GOLF_HOLE, LADDER, POLE, POLES, SLAB, STATION_AGENT, STOREY, WALL_HEIGHT, WALL_T, WING, WING_DESKS, beanbagsOut, deskBuilt, deskSeat, inElevator, inWing, roofDrop, seatPlace, streetBelow, vacantSeats, wingMinZ, wingRowZ, type DeskDef, type SeatDef, type SeatPlace, type StationKind } from '../shared/layout';
 import { OFFICE_PLAN, seatOn, type MapPlan } from '../shared/maps';
 import { canLabel } from '../shared/floorplan';
 import { floorPalette } from '../shared/floors';
@@ -3006,25 +3006,31 @@ const CHEERS: Record<string, string> = {
 
 /** E at the bar: the menu. */
 function showBar() {
-  openBar({ cutOff: booze.cutOff(performance.now() / 1000), order: orderDrink });
+  openBar({ cutOff: booze.cutOff(performance.now() / 1000), kitchen: !upTop, order: orderDrink });
 }
 
-/** The bartender comes over and pours it (a water, if you've had enough), and slides it across to you. */
+/**
+ * Up on the roof the bartender comes over and pours it (a water, if you've had enough), and slides it
+ * across to you; at the office kitchen's bottles you pour it yourself.
+ */
 function orderDrink(d: Drink) {
   const r = roof;
-  if (!r || !upTop) return;
+  const up = upTop;
+  if (up ? !r : !inOffice()) return;
   const cut = d.strength > 0 && booze.cutOff(performance.now() / 1000);
   const drink = cut ? DRINK_BY_ID.get('water')! : d;
-  r.serve(player.pos.z);
-  sound.pour(r.pourAt);
-  if (cut) toast("🙅 The bartender slides you a water instead: you've had enough", 'warn');
+  if (up && r) {
+    r.serve(player.pos.z);
+    sound.pour(r.pourAt);
+  } else sound.pour({ x: KITCHEN.bar.x, y: KITCHEN.counter.top + 0.25, z: KITCHEN.bar.z });
+  if (cut) toast(up ? "🙅 The bartender slides you a water instead: you've had enough" : "🙅 You pour yourself a water instead: you've had enough", 'warn');
   setTimeout(() => {
-    if (!upTop) return;
+    if (upTop !== up) return;
     booze.drink(drink, performance.now() / 1000);
     reach();
     if (player.view === 'first') hands.sip();
     if (!cut) toast(`${drink.emoji} ${drink.name}. ${CHEERS[drink.id] ?? 'Enjoy!'}`);
-  }, 1500);
+  }, up ? 1500 : 900);
 }
 
 let lastHorn = 0;
@@ -3781,6 +3787,8 @@ function hintFor(it: Interactable): Hint {
     }
     case 'bar': {
       const cut = booze.cutOff(performance.now() / 1000);
+      // The office kitchen's bottles (which carry their name): you pour your own.
+      if (it.label) return { k: `k${cut}`, parts: [title(it.label), aside(cut ? "you've had enough" : 'help yourself'), key('E', cut ? 'Pour a water' : 'Pour a drink')] };
       return { k: String(cut), parts: [title('🍸 Sky Bar'), aside(cut ? "you've had enough" : 'drinks on the house'), key('E', cut ? 'Ask for water' : 'Order a drink')] };
     }
     case 'dj': {

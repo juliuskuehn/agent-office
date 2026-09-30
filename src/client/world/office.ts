@@ -1815,7 +1815,7 @@ export function buildOffice(): Office {
   const kitchen = buildKitchen();
   group.add(kitchen.group);
   colliders.push(...kitchen.colliders);
-  interactables.push(kitchen.interactable);
+  interactables.push(kitchen.interactable, kitchen.bar);
   // The units, and the machine and the tap over them, in front of the north wall.
   fixture('north', (KITCHEN.counter.minX + KITCHEN.counter.maxX) / 2, 0.55, KITCHEN.counter.maxX - KITCHEN.counter.minX + 0.1, 1.1);
   fixture('north', KITCHEN.machine.x, 1.2, 0.7, 0.7);
