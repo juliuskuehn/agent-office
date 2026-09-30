@@ -23,6 +23,7 @@ import { DESK_BOOKS, FLOOR_PLANTS, buildCurtain, buildDesk, buildRoundTable, sta
 import { toon } from '../world/toon';
 import { ready, stage } from './stage';
 import { Laptop } from '../world/laptop';
+import { IMAC_COLORS, imac, iphone, macMini } from '../world/macs';
 
 /** A prop as the lab shows it: what goes in the scene, and what moves it every frame, if anything. */
 interface Shown {
@@ -88,6 +89,15 @@ const SHOW: Record<string, () => Shown> = {
     return { object, update: (dt) => devices.forEach((d) => d.update(dt, undefined)) };
   },
   kitchen: () => ({ object: buildKitchen().group }),
+  // The round table's Apple kit: an iMac in each color, a Mac mini, and iPhones face up and down.
+  imacs: () => {
+    const object = new THREE.Group();
+    IMAC_COLORS.forEach((c, i) => object.add(imac(c).translateX(i * 0.7)));
+    object.add(macMini().translateX(-0.4));
+    object.add(iphone('#4a4d52', false).translateX(-0.7));
+    object.add(iphone('#d9d4ca', true).translateX(-0.85));
+    return { object };
+  },
   // The kitchen's espresso machine, close up.
   espresso: () => ({ object: espressoMachine() }),
   plants: () => {

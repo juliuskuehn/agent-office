@@ -17,6 +17,8 @@ import { buildGreen, buildTee, type Green, type Tee } from './golf';
 import { buildStack, type Stack } from './stack';
 import { buildTower, wingWindows } from './tower';
 import { buildKitchen } from './kitchen';
+import { idleDisplay } from './laptop';
+import { IMAC_COLORS, imac, iphone, macMini } from './macs';
 import { buildDeskSigns, type DeskSigns } from './desksigns';
 import { TYPEFACE, WEIGHT } from '../typeface';
 
@@ -70,6 +72,8 @@ export interface DeskView {
   vacancy: THREE.Group;
   /** How high the vacancy marker floats. */
   vacancyY: number;
+  /** A place at the round table's display, switched off, for while no worker's own is in the laptop anchor. */
+  idle?: THREE.Object3D;
 }
 
 export interface Office {
@@ -205,8 +209,8 @@ function onWall(side: Side, u: number, plane?: number): { x: number; z: number; 
 const RUG_PINK = '#ffc6ff';
 /** The office's floor, on every floor whatever its palette: the rugs' pink all over, without seams. */
 const OFFICE_FLOOR = { floor: RUG_PINK };
-/** The big round rug the round table stands on, its chairs and all: red on the pink. */
-const DESK_RUG = { color: '#d62828', radius: 4.4 } as const;
+/** The rug the round table stands on, its chairs and all: a black starburst (`star`); `color` is the back office's. */
+const DESK_RUG = { color: '#d62828', radius: 4.4, star: { fill: '#161616', edge: '#050505' } } as const;
 /** The walls, their trim and every window's and door's frame, on every floor whatever its palette: one light grey. */
 const OFFICE_WALL = '#e8e8e8';
 
@@ -1141,10 +1145,18 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
     mug.position.set(decoX, height, decoZ);
     group.add(mug);
   } else {
-    // Where the old three boxes stood, the desks with books taking turns with the arrangements.
-    const books = deskBooks(Math.floor(index / 2));
-    books.position.set(decoX - 0.01, height, decoZ - 0.1);
-    group.add(books);
+    // Or an iPhone, face up or face down, left there.
+    const phone = iphone(['#4a4d52', '#d9d4ca', '#3c4a5c', '#b9c7c0'][Math.floor(index / 2) % 4], index % 4 === 1, 1.4);
+    phone.position.set(decoX, height, decoZ + 0.12);
+    phone.rotation.y = -0.4 + (index % 3) * 0.3;
+    group.add(phone);
+  }
+  // At a round table, the Mac mini the display runs off, behind the mug or the phone.
+  if (def.table) {
+    const mini = macMini(1.3);
+    mini.position.set(decoX + 0.02, height, decoZ - 0.24);
+    mini.rotation.y = 0.15;
+    group.add(mini);
   }
 
   // Where the worker's laptop goes, or at the round table its display (see Laptop), a little smaller.
@@ -1152,6 +1164,14 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
   laptopAnchor.position.set(0, height, -0.06);
   laptopAnchor.scale.setScalar(def.table ? 1.1 : 1.3);
   group.add(laptopAnchor);
+  // At a round table there's always a display: switched off, until a worker's own takes its place.
+  let idle: THREE.Object3D | undefined;
+  if (def.table) {
+    idle = idleDisplay();
+    idle.position.copy(laptopAnchor.position);
+    idle.scale.copy(laptopAnchor.scale);
+    group.add(idle);
+  }
 
   // On the chair, facing the desk: at a round table sunk into its Togo, a little further back.
   const seatAnchor = new THREE.Object3D();
@@ -1174,10 +1194,10 @@ export function buildDesk(def: DeskDef, index: number, trimMat: THREE.Material):
   group.add(ch);
 
   const vacancyY = height + 0.55;
-  const vacancy = vacancyMarker(vacancyY);
+  const vacancy = vacancyMarker(vacancyY, false);
   group.add(vacancy);
 
-  return { def, group, laptopAnchor, seatAnchor, stage, chair: ch, vacancy, vacancyY };
+  return { def, group, laptopAnchor, seatAnchor, stage, chair: ch, vacancy, vacancyY, idle };
 }
 
 /** A round table for four (see ROUND_TABLES): a round top on a pedestal, standing on a round foot. */
@@ -1188,6 +1208,24 @@ export function buildRoundTable(at: { x: number; z: number }): THREE.Group {
   const steel = toon('#8d99ae');
   g.add(mesh(new THREE.CylinderGeometry(0.09, 0.09, height - 0.1, 16), steel, 0, (height - 0.07) / 2, 0));
   g.add(mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.04, 32), steel, 0, 0.02, 0));
+  // In the middle of it, four iMacs back to back in their colors, facing out between the places,
+  // and a couple of iPhones left lying by them.
+  for (let i = 0; i < 4; i++) {
+    const a = Math.PI / ROUND_TABLE.places + (i * Math.PI) / 2;
+    const mac = imac(IMAC_COLORS[i], 1.45);
+    mac.position.set(Math.sin(a) * 0.42, height, Math.cos(a) * 0.42);
+    mac.rotation.y = a;
+    g.add(mac);
+  }
+  for (const [a, faceDown, color] of [
+    [0.5, true, '#c9b8a6'],
+    [2.9, false, '#3b3d42'],
+  ] as const) {
+    const phone = iphone(color, faceDown, 1.4);
+    phone.position.set(Math.sin(a) * 0.95, height, Math.cos(a) * 0.95);
+    phone.rotation.y = a + 0.6;
+    g.add(phone);
+  }
   g.position.set(at.x, 0, at.z);
   return g;
 }
@@ -1196,7 +1234,7 @@ export function buildRoundTable(at: { x: number; z: number }): THREE.Group {
  * A rug cut like a comic-book starburst: yellow, with a thick red edge, its `points` spikes a little
  * uneven, `rx` across (x) and `rz` deep (z) to their tips. Flat on the floor, centred on the origin.
  */
-export function starRug(rx: number, rz: number, points = 14): THREE.Group {
+export function starRug(rx: number, rz: number, points = 14, colors: { fill: string; edge: string } = { fill: '#f0e614', edge: '#e0141c' }): THREE.Group {
   // Seeded, so every floor's is cut the same.
   let seed = 909;
   const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -1218,8 +1256,8 @@ export function starRug(rx: number, rz: number, points = 14): THREE.Group {
     return new THREE.ShapeGeometry(s).rotateX(-Math.PI / 2);
   };
   const g = new THREE.Group();
-  g.add(mesh(outline(0), toon('#e0141c'), 0, 0.011, 0, false));
-  g.add(mesh(outline(0.32), toon('#f0e614'), 0, 0.014, 0, false));
+  g.add(mesh(outline(0), toon(colors.edge), 0, 0.011, 0, false));
+  g.add(mesh(outline(0.32), toon(colors.fill), 0, 0.014, 0, false));
   for (const m of g.children as THREE.Mesh[]) m.receiveShadow = true;
   return g;
 }
@@ -1325,18 +1363,21 @@ function buildLoungeSeat(def: DeskDef): DeskView {
   stage.position.set(0.3, top, 0.1);
   group.add(stage);
   const vacancyY = top + 0.55;
-  const vacancy = vacancyMarker(vacancyY);
+  const vacancy = vacancyMarker(vacancyY, false);
   group.add(vacancy);
   // No chair: the Togo is the seat.
   return { def, group, laptopAnchor, seatAnchor, stage, chair: new THREE.Group(), vacancy, vacancyY };
 }
 
 /** The floating green "+" over an empty seat. */
-export function vacancyMarker(y: number): THREE.Group {
+/** The marker over a free seat: a green "+" or, with `plus` false (the office has none), nothing to see, only whether the seat is free. */
+export function vacancyMarker(y: number, plus = true): THREE.Group {
   const vacancy = new THREE.Group();
   const plusMat = toon('#7cf29a', { emissive: '#1f7a3a' });
-  vacancy.add(mesh(box(0.28, 0.08, 0.08), plusMat, 0, 0, 0, false));
-  vacancy.add(mesh(box(0.08, 0.28, 0.08), plusMat, 0, 0, 0, false));
+  if (plus) {
+    vacancy.add(mesh(box(0.28, 0.08, 0.08), plusMat, 0, 0, 0, false));
+    vacancy.add(mesh(box(0.08, 0.28, 0.08), plusMat, 0, 0, 0, false));
+  }
   vacancy.position.set(0, y, 0);
   return vacancy;
 }
@@ -1387,7 +1428,7 @@ function buildBeanbag(def: DeskDef, index: number): DeskView {
   group.add(stage);
 
   const vacancyY = 1.25;
-  const vacancy = vacancyMarker(vacancyY);
+  const vacancy = vacancyMarker(vacancyY, false);
   group.add(vacancy);
 
   return { def, group, laptopAnchor, seatAnchor, stage, chair: bag, vacancy, vacancyY };
@@ -1477,7 +1518,7 @@ export function buildOffice(): Office {
 
   // One big starburst rug under the round table and all its chairs, its hollows clear of them.
   for (const t of ROUND_TABLES) {
-    const rug = starRug(DESK_RUG.radius + 0.9, DESK_RUG.radius + 0.9, 16);
+    const rug = starRug(DESK_RUG.radius + 0.9, DESK_RUG.radius + 0.9, 16, DESK_RUG.star);
     rug.position.set(t.x, 0, t.z);
     group.add(rug);
   }
@@ -1889,6 +1930,8 @@ export function buildOffice(): Office {
       d.show(d.open);
     }
     for (const d of desks.values()) {
+      // A place's display off while nobody's own is there.
+      if (d.idle) d.idle.visible = d.laptopAnchor.children.length === 0;
       // A board agent waiting to be asked stands still (its own idle bob is in Worker.update).
       if (!d.vacancy.visible || !d.group.visible || d.def.station) continue;
       d.vacancy.position.y = d.vacancyY + Math.sin(t * 2 + d.def.x) * 0.06;
