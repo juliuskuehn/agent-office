@@ -101,8 +101,10 @@ export interface Office {
   cars: Fleet;
   /** The scenic loop off either end of the street, and everything along it. */
   scenic: Scenic;
-  /** The city's skyline to the north (see buildCity): its masts' lights blink with `update`. */
+  /** The city's skyline all round (see buildCity): its masts' lights blink with `update`. */
   skyline: City;
+  /** Its towers out over the country to the south, which only show from inside the office (they'd stand in the scenic loop's fields). */
+  skylineCountry: City;
   jukebox: JukeboxView;
   /** The arcade cabinet in the lounge, where BLOCKFALL plays (ui/cabinet.ts). */
   cabinet: CabinetModel;
@@ -1187,6 +1189,38 @@ export function buildRoundTable(at: { x: number; z: number }): THREE.Group {
 }
 
 /**
+ * A rug cut like a comic-book starburst: yellow, with a thick red edge, its `points` spikes a little
+ * uneven, `rx` across (x) and `rz` deep (z) to their tips. Flat on the floor, centred on the origin.
+ */
+export function starRug(rx: number, rz: number, points = 14): THREE.Group {
+  // Seeded, so every floor's is cut the same.
+  let seed = 909;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const tips = Array.from({ length: points * 2 }, (_, i) => {
+    const a = (i / (points * 2)) * Math.PI * 2 + (rand() - 0.5) * 0.12;
+    const k = i % 2 === 0 ? 0.93 + rand() * 0.07 : 0.7 + rand() * 0.06;
+    return [Math.cos(a) * k, Math.sin(a) * k] as const;
+  });
+  /** The star's outline, `edge` in from its cut edge all round (near enough). */
+  const outline = (edge: number) => {
+    const s = new THREE.Shape();
+    tips.forEach(([x, z], i) => {
+      const len = Math.hypot(x * rx, z * rz);
+      const k = Math.max(0, (len - edge * (i % 2 === 0 ? 2.2 : 1)) / len);
+      if (i === 0) s.moveTo(x * rx * k, -z * rz * k);
+      else s.lineTo(x * rx * k, -z * rz * k);
+    });
+    s.closePath();
+    return new THREE.ShapeGeometry(s).rotateX(-Math.PI / 2);
+  };
+  const g = new THREE.Group();
+  g.add(mesh(outline(0), toon('#e0141c'), 0, 0.011, 0, false));
+  g.add(mesh(outline(0.32), toon('#f0e614'), 0, 0.014, 0, false));
+  for (const m of g.children as THREE.Mesh[]) m.receiveShadow = true;
+  return g;
+}
+
+/**
  * A curtain `width` wide and `height` tall, in two halves on a rod over it: pleated all the way down,
  * the folds deeper toward the hem, so it falls in light and dark stripes. Built across x, facing +z.
  * `show(k)` draws it: 0 shut, 1 gathered at either side, its folds bunched up.
@@ -1498,10 +1532,14 @@ export function buildOffice(): Office {
   const green = buildGreen(ground, groundColliders, night);
   // Off either end of the street, the scenic loop: the farm, the pines, the mountains and the beach.
   const scenic = buildScenic(ground, groundColliders, night);
-  // All round, far off: the city's skyline, the towers the roof looks out on.
-  const skyline = buildCity(night, { skyline: true });
-  skyline.group.position.y = STREET_Y;
-  ground.add(skyline.group);
+  // All round, far off: the city's skyline, the towers the roof looks out on; out over the country
+  // to the south too, only while you look out from inside (see main.ts).
+  const skyline = buildCity(night, { skyline: 'town' });
+  const skylineCountry = buildCity(night, { skyline: 'country' });
+  for (const c of [skyline, skylineCountry]) {
+    c.group.position.y = STREET_Y;
+    ground.add(c.group);
+  }
   group.add(ground);
   colliders.push(...groundColliders);
   const groundBase = groundColliders.map((c) => ({ c, top: c.top, bottom: c.bottom ?? 0 }));
@@ -1654,7 +1692,8 @@ export function buildOffice(): Office {
   table.position.set(lx - 0.4, 0, lz);
   group.add(table);
   colliders.push({ minX: lx - 1.2, maxX: lx + 0.4, minZ: lz - 0.8, maxZ: lz + 0.8, top: 0.46 });
-  const lounge = mesh(roundedBox(LOUNGE.rug, 0.02, LOUNGE.rug, 1.2), toon(RUG_PINK), lx, 0.011, lz, false);
+  const lounge = starRug(LOUNGE.rug / 2 + 0.6, LOUNGE.rug / 2);
+  lounge.position.set(lx, 0, lz);
   group.add(lounge);
 
   // Across from the couch, the Togo, and the low table in front of it where two workers code (LOUNGE_DESKS).
@@ -1842,7 +1881,7 @@ export function buildOffice(): Office {
     scenic.update(t);
   };
 
-  return { group, colliders, interactables, desks, setBeanbags, boardMeshes, tvScreen, bossScreen, machineScreen, meetingBoard: meeting.board, meetingSign: meeting.sign, fixtures: () => fixtures, elevator, garageLift, cars, scenic, skyline, jukebox, cabinet, tee, green, stack, wing, setWing, signs, setProjectName, setLook, setLevel, night, plants, update };
+  return { group, colliders, interactables, desks, setBeanbags, boardMeshes, tvScreen, bossScreen, machineScreen, meetingBoard: meeting.board, meetingSign: meeting.sign, fixtures: () => fixtures, elevator, garageLift, cars, scenic, skyline, skylineCountry, jukebox, cabinet, tee, green, stack, wing, setWing, signs, setProjectName, setLook, setLevel, night, plants, update };
 }
 
 /** A chair at the meeting table, with its laptop on the table in front of it. */

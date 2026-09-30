@@ -4850,6 +4850,12 @@ function frame(ts?: number) {
       office.stack.update(dt, [{ x: player.pos.x, y: player.pos.y, z: player.pos.z, grip }, ...[...remotes.values()].map((r) => ({ x: r.person.root.position.x, y: r.person.root.position.y, z: r.person.root.position.z, grip: r.grip }))], camera.position);
       office.jukebox.update(t, dt, sound.beat());
       office.skyline.update(t, dt, sky.lampsOn);
+      // The towers out over the country only from in the building (or out on its balcony), not
+      // from the street or the loop's road through the fields they'd stand in.
+      const c = camera.position;
+      const home = c.y > -1 && c.x > FLOOR.minX - 1 && c.x < FLOOR.maxX + 1 && c.z > FLOOR.minZ - WING.row * WING.rows - 1 && c.z < BALCONY.maxZ + 0.5;
+      office.skylineCountry.group.visible = home;
+      if (home) office.skylineCountry.update(t, dt, sky.lampsOn);
     }
   }
   checkSmokeBreak(now);
