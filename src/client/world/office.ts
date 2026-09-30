@@ -198,21 +198,22 @@ function onWall(side: Side, u: number): { x: number; z: number; rotY: number } {
   }
 }
 
-/** The office's floor, on every floor whatever its palette: red planks, and the seams between them. */
-const OFFICE_FLOOR = { floor: '#b8453e', seam: '#9e3833' };
+/** The office's floor, on every floor whatever its palette: one even dark grey, without seams. */
+const OFFICE_FLOOR = { floor: '#44474d' };
 /** The big rug all the desks stand on. */
 const DESK_RUG = { color: '#f3b3c3', minX: -14.2, maxX: 2.2, minZ: -6.6, maxZ: 6.6 } as const;
 
-/** Even planks of one shade throughout, with only the seams between them. */
-function paintPlanks(c: HTMLCanvasElement, colors: { floor: string; seam: string }) {
+/** Even planks of one shade throughout, with only the seams between them (if they have any). */
+function paintPlanks(c: HTMLCanvasElement, colors: { floor: string; seam?: string }) {
   const g = c.getContext('2d')!;
   g.fillStyle = colors.floor;
   g.fillRect(0, 0, 512, 512);
+  if (!colors.seam) return;
   g.fillStyle = colors.seam;
   for (let row = 0; row < 8; row++) g.fillRect(0, row * 64, 512, 3);
 }
 
-function floorTexture(width = FLOOR.maxX - FLOOR.minX, depth = FLOOR.maxZ - FLOOR.minZ, colors = OFFICE_FLOOR): THREE.CanvasTexture {
+function floorTexture(width = FLOOR.maxX - FLOOR.minX, depth = FLOOR.maxZ - FLOOR.minZ, colors: { floor: string; seam?: string } = OFFICE_FLOOR): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 512;
