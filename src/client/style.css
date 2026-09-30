@@ -13,13 +13,16 @@
   --info: #5bc0eb;
   --shadow: 0 4px 0 var(--ink);
   --radius: 16px;
-  --font: 'Nunito', ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, sans-serif;
+  /* The office's typeface, regular throughout (see the rule below, and typeface.ts for the 3D). */
+  --font: "Times New Roman", Times, serif;
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #bfe3ff; }
 body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: antialiased; }
 button { font-family: inherit; }
+/* One weight everywhere, however a rule would have it bolder; the terminals keep their own. */
+body, body *:not(.xterm, .xterm *) { font-weight: 400 !important; }
 .hidden { display: none !important; }
 
 #app { position: fixed; inset: 0; }

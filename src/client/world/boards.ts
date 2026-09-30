@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { GhIssue, GhPull, GhState, QueueState, QueueTask, ServiceInfo, WorkerInfo } from '../../shared/protocol';
 import { store, workerForPull } from '../state';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
 export const NOTE_COLORS = ['#fff7b0', '#ffd6e0', '#caffbf', '#bde0fe', '#ffe5b4'];
 export const PINS = ['#ef476f', '#118ab2', '#06d6a0', '#ffd166'];
@@ -99,7 +100,7 @@ export class BoardTexture {
     const open = (state.items as (GhIssue | GhPull)[]).filter((i) => i.state === 'OPEN');
     if (!open.length) {
       const note = state.error ? `⚠️ ${state.error}` : state.loading && !state.fetchedAt ? 'Loading…' : this.kind === 'issues' ? 'No open issues 🎉' : 'No open PRs';
-      g.font = '800 40px Nunito, ui-rounded, system-ui, sans-serif';
+      g.font = `${WEIGHT} 40px ${TYPEFACE}`;
       const lines = wrap(g, note.replace(/`/g, ''), 760, 4);
       const boxH = 60 + lines.length * 50;
       g.fillStyle = '#fffaf3';
@@ -149,9 +150,9 @@ export class BoardTexture {
       const fs = Math.round(22 * Math.min(scale, nh / 164));
       const w = this.kind === 'pulls' && workers ? workerForPull(workers.values(), it as GhPull) : undefined;
       const footer = w ? fs * 1.3 : 0;
-      g.font = `900 ${Math.round(fs * 1.35)}px Nunito, ui-rounded, system-ui, sans-serif`;
+      g.font = `${WEIGHT} ${Math.round(fs * 1.35)}px ${TYPEFACE}`;
       g.fillText(`#${it.number}`, -nw / 2 + 14, -nh / 2 + fs * 2);
-      g.font = `700 ${fs}px Nunito, ui-rounded, system-ui, sans-serif`;
+      g.font = `${WEIGHT} ${fs}px ${TYPEFACE}`;
       wrap(g, it.title, nw - 28, Math.max(2, Math.floor((nh - fs * 3 - footer) / (fs * 1.1)))).forEach((line, li) => g.fillText(line, -nw / 2 + 14, -nh / 2 + fs * 3.4 + li * fs * 1.1));
       if (w) {
         // A dot in the worker's color and its desk, so you can tell whose PR it is from across the room.
@@ -165,7 +166,7 @@ export class BoardTexture {
         g.strokeStyle = '#2b2d42';
         g.stroke();
         g.fillStyle = '#5c5f73';
-        g.font = `800 ${Math.round(fs * 0.78)}px Nunito, ui-rounded, system-ui, sans-serif`;
+        g.font = `${WEIGHT} ${Math.round(fs * 0.78)}px ${TYPEFACE}`;
         g.fillText(clip(g, `${w.name} · ${store.plan().byId.get(w.deskId)?.label ?? 'desk'}`, nw - 28 - r * 2 - 8), -nw / 2 + 14 + r * 2 + 8, y + fs * 0.28);
       }
       g.beginPath();
@@ -179,7 +180,7 @@ export class BoardTexture {
     });
     if (open.length > cols * rows) {
       g.fillStyle = '#2b2d42';
-      g.font = '800 26px Nunito, ui-rounded, system-ui, sans-serif';
+      g.font = `${WEIGHT} 26px ${TYPEFACE}`;
       g.textAlign = 'right';
       g.fillText(`+${open.length - cols * rows} more`, W - 20, H - 16);
       g.textAlign = 'left';
@@ -224,10 +225,10 @@ export class ServicesBoardTexture {
     if (!rows.length) {
       g.textAlign = 'center';
       g.fillStyle = '#e9ecef';
-      g.font = '900 52px Nunito, ui-rounded, system-ui, sans-serif';
+      g.font = `${WEIGHT} 52px ${TYPEFACE}`;
       g.fillText('No web servers running', W / 2, H / 2 - 20);
       g.fillStyle = 'rgba(233,236,239,.6)';
-      g.font = '700 32px Nunito, ui-rounded, system-ui, sans-serif';
+      g.font = `${WEIGHT} 32px ${TYPEFACE}`;
       g.fillText('When a worker starts one, it shows up here', W / 2, H / 2 + 36);
       g.textAlign = 'left';
       this.texture.needsUpdate = true;
@@ -254,15 +255,15 @@ export class ServicesBoardTexture {
       g.textAlign = 'left';
       const textW = W - 120 - 50 - g.measureText(`:${r.port}`).width - 30;
       g.fillStyle = '#f8f9fa';
-      g.font = `800 ${fs}px Nunito, ui-rounded, system-ui, sans-serif`;
+      g.font = `${WEIGHT} ${fs}px ${TYPEFACE}`;
       g.fillText(clip(g, r.title, textW), 110, y + rowH / 2 - fs * 0.08);
       g.fillStyle = 'rgba(233,236,239,.65)';
-      g.font = `700 ${Math.round(fs * 0.62)}px Nunito, ui-rounded, system-ui, sans-serif`;
+      g.font = `${WEIGHT} ${Math.round(fs * 0.62)}px ${TYPEFACE}`;
       g.fillText(clip(g, r.who, textW), 110, y + rowH / 2 + fs * 0.72);
     });
     if (rows.length > shown.length) {
       g.fillStyle = '#e9ecef';
-      g.font = '800 26px Nunito, ui-rounded, system-ui, sans-serif';
+      g.font = `${WEIGHT} 26px ${TYPEFACE}`;
       g.textAlign = 'right';
       g.fillText(`+${rows.length - shown.length} more`, W - 24, H - 10);
       g.textAlign = 'left';
@@ -327,11 +328,11 @@ export class QueueBoardTexture {
       g.fillStyle = c;
       g.fillRect(W - 300 + i * 62, H - 30, 48, 14);
     });
-    const font = 'Nunito, ui-rounded, system-ui, sans-serif';
+    const font = TYPEFACE;
     g.textBaseline = 'alphabetic';
     g.textAlign = 'left';
     g.fillStyle = '#1f5fbf';
-    g.font = `900 52px ${font}`;
+    g.font = `${WEIGHT} 52px ${font}`;
     g.fillText('Task queue', 40, 76);
     // A hand-drawn underline.
     g.strokeStyle = '#1f5fbf';
@@ -343,16 +344,16 @@ export class QueueBoardTexture {
     g.stroke();
     g.textAlign = 'right';
     g.fillStyle = '#6b7280';
-    g.font = `700 26px ${font}`;
+    g.font = `${WEIGHT} 26px ${font}`;
     g.fillText(summary, W - 40, 72);
     g.textAlign = 'left';
     if (!rows.length) {
       g.textAlign = 'center';
       g.fillStyle = '#2b2d42';
-      g.font = `900 50px ${font}`;
+      g.font = `${WEIGHT} 50px ${font}`;
       g.fillText('Nothing queued', W / 2, H / 2 - 10);
       g.fillStyle = '#6b7280';
-      g.font = `700 30px ${font}`;
+      g.font = `${WEIGHT} 30px ${font}`;
       g.fillText('Add issues from the 📌 Issues board, or press E here', W / 2, H / 2 + 44);
       g.textAlign = 'left';
       this.texture.needsUpdate = true;
@@ -364,14 +365,14 @@ export class QueueBoardTexture {
     shown.forEach((r, i) => {
       const y = 128 + i * rowH + fs;
       g.fillStyle = r.color;
-      g.font = `800 ${fs}px ${font}`;
+      g.font = `${WEIGHT} ${fs}px ${font}`;
       g.fillText(r.icon, 44, y);
       g.textAlign = 'right';
-      g.font = `700 ${Math.round(fs * 0.78)}px ${font}`;
+      g.font = `${WEIGHT} ${Math.round(fs * 0.78)}px ${font}`;
       const sideW = g.measureText(r.side).width;
       g.fillText(r.side, W - 44, y);
       g.textAlign = 'left';
-      g.font = `800 ${fs}px ${font}`;
+      g.font = `${WEIGHT} ${fs}px ${font}`;
       g.fillText(clip(g, r.text, W - 44 - sideW - 30 - 110), 110, y);
       if (r.color === '#8a8f98') {
         g.strokeStyle = 'rgba(138,143,152,.7)';
@@ -384,7 +385,7 @@ export class QueueBoardTexture {
     });
     if (rows.length > shown.length) {
       g.fillStyle = '#6b7280';
-      g.font = `800 24px ${font}`;
+      g.font = `${WEIGHT} 24px ${font}`;
       g.textAlign = 'right';
       g.fillText(`+${rows.length - shown.length} more`, W - 44, H - 34);
       g.textAlign = 'left';

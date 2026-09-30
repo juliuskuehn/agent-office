@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { WHITEBOARD } from '../../shared/layout';
 import { mesh, roundedBox, textPlane, toon } from './toon';
 import type { Collider, Interactable } from './office';
+import { TYPEFACE, WEIGHT } from '../typeface';
 
 // The whiteboard: a rolling whiteboard on casters out on the open floor, with a marker tray. Its
 // face shows whatever everyone has drawn on it (see ui/whiteboard.ts), live.
@@ -12,7 +13,7 @@ const INK = '#2b2d42';
 const PX = 512;
 /** Clear space around a drawing on the face, in pixels. */
 const PAD = 40;
-const FONT = 'Nunito, ui-rounded, system-ui, sans-serif';
+const FONT = TYPEFACE;
 
 export interface WhiteboardStand {
   group: THREE.Group;
@@ -78,7 +79,7 @@ export function buildWhiteboard(): WhiteboardStand {
   const eraserFelt = mesh(new THREE.BoxGeometry(0.19, 0.015, 0.075), toon('#6c757d'), 0.62, trayY + 0.015, 0.09, false);
   group.add(eraserFelt);
 
-  const plaque = textPlane('📝 Whiteboard', { bg: '#fffaf3', size: 48 });
+  const plaque = textPlane('📝 Whiteboard', { size: 48 });
   plaque.scale.multiplyScalar(0.55);
   plaque.position.set(0, bottom + height + 0.2, 0.05);
   group.add(plaque);
@@ -107,9 +108,9 @@ export function buildWhiteboard(): WhiteboardStand {
       g.fillStyle = '#b8c0c8';
       g.textAlign = 'center';
       g.textBaseline = 'middle';
-      g.font = `900 120px ${FONT}`;
+      g.font = `${WEIGHT} 120px ${FONT}`;
       g.fillText('Draw together ✏️', W / 2, H / 2 - 70);
-      g.font = `700 64px ${FONT}`;
+      g.font = `${WEIGHT} 64px ${FONT}`;
       g.fillText('Walk up and press E — everyone on this floor sees it live', W / 2, H / 2 + 70);
     }
     texture.needsUpdate = true;

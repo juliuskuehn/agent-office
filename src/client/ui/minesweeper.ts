@@ -1,3 +1,5 @@
+import { TYPEFACE, WEIGHT } from '../typeface';
+
 /**
  * Minesweeper for the boss's monitor (ui/arcade.ts): the rules, and a painter that draws the whole
  * screen in fixed 960×540 units, so the same picture goes on the monitor and on the board you click.
@@ -13,7 +15,7 @@ const CELL = 52;
 const X0 = (W - COLS * CELL) / 2;
 const Y0 = 62;
 const FACE = { x: W / 2, y: 31, r: 23 };
-const FONT = "Nunito, ui-rounded, 'SF Pro Rounded', system-ui, sans-serif";
+const FONT = TYPEFACE;
 /** The classic colors for 1 to 8 mines around. */
 const NUMBER = ['', '#1f6feb', '#2a9d4b', '#e63946', '#3a3a9f', '#9d2a2a', '#1a9c9c', '#2b2d42', '#7a6f65'];
 
@@ -128,7 +130,7 @@ export class Minesweeper {
     g.beginPath();
     g.arc(FACE.x, FACE.y, FACE.r, 0, Math.PI * 2);
     g.fill();
-    g.font = `30px ${FONT}`;
+    g.font = `${WEIGHT} 30px ${FONT}`;
     const face = this.state === 'won' ? '😎' : this.state === 'lost' ? '😵' : this.pressed >= 0 ? '😮' : '🙂';
     g.fillText(face, FACE.x, FACE.y + 2);
 
@@ -138,9 +140,9 @@ export class Minesweeper {
       g.fillStyle = 'rgba(11, 19, 32, 0.78)';
       g.fillRect(0, 150, W, 230);
       g.fillStyle = '#f1ede4';
-      g.font = `900 92px ${FONT}`;
+      g.font = `${WEIGHT} 92px ${FONT}`;
       g.fillText('MINESWEEPER', W / 2, 240);
-      g.font = `800 28px ${FONT}`;
+      g.font = `${WEIGHT} 28px ${FONT}`;
       g.fillText('Sit in the boss’s chair and press E to play', W / 2, 318);
     } else if (this.over) {
       const won = this.state === 'won';
@@ -148,9 +150,9 @@ export class Minesweeper {
       roundRect(g, W / 2 - 230, H / 2 - 44, 460, 88, 18);
       g.fill();
       g.fillStyle = '#ffffff';
-      g.font = `900 40px ${FONT}`;
+      g.font = `${WEIGHT} 40px ${FONT}`;
       g.fillText(won ? `Cleared in ${Math.floor(this.ms / 1000)}s!` : 'Boom!', W / 2, H / 2 - 8);
-      g.font = `800 20px ${FONT}`;
+      g.font = `${WEIGHT} 20px ${FONT}`;
       g.fillText(idle ? 'Sit down and press E to play again' : 'Click the face for a new game', W / 2, H / 2 + 26);
     }
   }
@@ -196,15 +198,15 @@ export class Minesweeper {
       g.fillRect(x + 4, y + 4, CELL - 8, CELL - 8);
     }
     if (cell.flag) {
-      g.font = `26px ${FONT}`;
+      g.font = `${WEIGHT} 26px ${FONT}`;
       g.fillText('🚩', cx, cy);
       if (lost && !cell.mine) cross(g, cx, cy - 2);
     } else if (shown && cell.mine) {
-      g.font = `28px ${FONT}`;
+      g.font = `${WEIGHT} 28px ${FONT}`;
       g.fillText('💣', cx, cy);
     } else if (cell.open && cell.near) {
       g.fillStyle = NUMBER[cell.near];
-      g.font = `900 32px ${FONT}`;
+      g.font = `${WEIGHT} 32px ${FONT}`;
       g.fillText(String(cell.near), cx, cy);
     }
   }
@@ -230,7 +232,7 @@ function readout(g: CanvasRenderingContext2D, x: number, text: string) {
   roundRect(g, x, 10, 150, 42, 10);
   g.fill();
   g.fillStyle = '#ff5a5f';
-  g.font = `900 28px ${FONT}`;
+  g.font = `${WEIGHT} 28px ${FONT}`;
   g.fillText(text, x + 75, 33);
 }
 

@@ -1,10 +1,12 @@
 :root { --bg: #ffe8cc; --ink: #2b2d42; --card: #fffaf3; --accent: #ff8a5b; --muted: #7a6f65; --border: #2b2d42; }
 * { box-sizing: border-box; }
+/* The office's typeface, regular throughout (see style.css). */
+body, body * { font-weight: 400 !important; }
 [hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; }
 body {
   background: radial-gradient(circle at 20% 20%, #ffd6a5 0, transparent 40%), radial-gradient(circle at 80% 70%, #caffbf 0, transparent 45%), var(--bg);
-  font-family: 'Nunito', ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
+  font-family: "Times New Roman", Times, serif;
   color: var(--ink); display: grid; place-items: center; padding: 16px;
 }
 .card { width: min(380px, 100%); background: var(--card); border: 3px solid var(--border); border-radius: 22px; padding: 28px; box-shadow: 0 8px 0 var(--border); text-align: center; }
