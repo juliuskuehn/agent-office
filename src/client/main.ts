@@ -20,6 +20,8 @@ import { BUILDERS } from './world/styles';
 import { Court } from './world/court';
 import { buildRooftop, type Rooftop } from './world/rooftop';
 import { DrunkVision } from './world/drunk';
+import { buildHomies } from './world/homies';
+import { SanAndreasLook, rememberSaLook, saLookWanted } from './world/sanandreas';
 import { Booze, type Stage as Feeling } from './booze';
 import { djFrame, djTime } from './dnb';
 import { openBar } from './ui/bar';
@@ -370,6 +372,20 @@ const djAt = () => djTime(store.officeNow());
 /** Drinks from the bar, and how they make the world look (see booze.ts, world/drunk.ts). */
 const booze = new Booze();
 const drunkVision = new DrunkVision(renderer);
+/** The San Andreas test look (see world/sanandreas.ts): `?sa` on the address or F9, and the people who come with it. */
+const saLook = new SanAndreasLook(renderer);
+let saOn = saLookWanted();
+const homies = buildHomies();
+homies.group.visible = saOn;
+office.group.add(homies.group);
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'F9' || e.repeat) return;
+  e.preventDefault();
+  saOn = !saOn;
+  homies.group.visible = saOn;
+  rememberSaLook(saOn);
+  if (!saOn) saLook.release();
+});
 
 // ---- Networking & state -------------------------------------------------------------------------
 const net = new Net(() => store.profile, whereNow);
@@ -4960,6 +4976,10 @@ function frame(ts?: number) {
   if (blurry) drunkVision.begin();
   else if (drunkVisionOn) drunkVision.release();
   drunkVisionOn = blurry;
+  // The San Andreas look, while you're sober (drunk, the drunk vision has the frame).
+  const sa = saOn && !blurry;
+  if (sa) saLook.begin();
+  if (saOn && homies.group.visible) homies.update(t);
   renderer.render(scene, camera);
   pointToWaiting(now);
   // Not while the camera's up at the boss's monitor or the arcade, where they'd cover the screen.
@@ -4976,6 +4996,7 @@ function frame(ts?: number) {
     sky.shading(true);
   }
   if (blurry) drunkVision.end(drunk, t, !reduceMotion.matches);
+  if (sa) saLook.end(t, !reduceMotion.matches);
   loading.drew();
   requestAnimationFrame(frame);
 }
