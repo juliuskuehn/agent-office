@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Changes } from '../src/server/changes.js';
-import { Worktrees } from '../src/server/worktrees.js';
+import { gitEnv, Worktrees } from '../src/server/worktrees.js';
 
 /**
  * A project cloned from a bare origin, plus a second clone standing in for GitHub: whatever it
@@ -162,4 +162,15 @@ test('a worktree deleted with its branch comes back from origin when it was push
   f.git('checkout', '-q', made.branch);
   const refused = await trees.restore(made);
   assert.ok('error' in refused && /already (checked out|used by worktree)/.test(refused.error), JSON.stringify(refused));
+});
+
+test("git speaks English to the office on a machine set to another language, keeping the machine's character set", () => {
+  const env = gitEnv({ PATH: '/bin', LANG: 'de_DE.UTF-8', LC_ALL: 'de_DE.UTF-8' });
+  assert.equal(env.LC_ALL, undefined);
+  assert.equal(env.LC_MESSAGES, 'C');
+  assert.equal(env.LC_CTYPE, 'de_DE.UTF-8');
+  assert.equal(env.PATH, '/bin');
+  // A git with translations still starts its complaint with "fatal:", which is what the office looks for.
+  const german = gitEnv({ ...process.env, LANG: 'de_DE.UTF-8', LC_ALL: 'de_DE.UTF-8' });
+  assert.throws(() => execFileSync('git', ['-C', path.join(tmpdir(), 'no-such-folder-here'), 'status'], { env: german, stdio: ['ignore', 'pipe', 'pipe'] }), (err: { stderr: Buffer }) => /^fatal:/.test(err.stderr.toString()));
 });
