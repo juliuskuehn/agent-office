@@ -213,6 +213,36 @@ def tuck(ob, under, by=0.02):
     set_world(ob, w)
 
 
+def _upper_hull(pts):
+    """The upper convex hull of 2D points (x, y), x-sorted."""
+    hull = []
+    for p in sorted(set(map(tuple, pts))):
+        while len(hull) >= 2 and (hull[-1][0] - hull[-2][0]) * (p[1] - hull[-2][1]) - (hull[-1][1] - hull[-2][1]) * (p[0] - hull[-2][0]) >= 0:
+            hull.pop()
+        hull.append(p)
+    return np.array(hull)
+
+
+def loose_seat(ob, waist, ease=0.012):
+    """Trousers loose over the seat instead of following the cleft: from just under the crotch up to
+    `waist` the back is drawn taut across (each height's back filled out to its convex outline) and
+    let out by `ease`."""
+    w = world(ob)
+    middle = w[np.abs(w[:, 0]) < 0.01]
+    crotch = middle[:, 2].min()          # where the legs part
+    cy = np.median(w[(w[:, 2] > crotch) & (w[:, 2] < waist), 1])
+    out = w.copy()
+    for z in np.arange(crotch - 0.06, waist, 0.01):
+        sl = (abs(w[:, 2] - z) < 0.006) & (w[:, 1] > cy)
+        if sl.sum() < 4:
+            continue
+        h = _upper_hull(w[sl][:, [0, 1]])
+        fill = np.interp(w[sl, 0], h[:, 0], h[:, 1])
+        f = np.clip((z - (crotch - 0.06)) / 0.08, 0, 1) * np.clip((waist - z) / 0.06, 0, 1)
+        out[sl, 1] += (np.maximum(w[sl, 1], fill) + ease - w[sl, 1]) * f
+    set_world(ob, out)
+
+
 def no_socks(ob):
     """Takes the socks out of MPFB's shoes: the faces whose texture is near white."""
     px = _pixels(diffuse_node(ob).image)
@@ -356,6 +386,7 @@ def hoodie(parts, rig):
     smooth(bottom)
     straight_legs(bottom)
     tuck(bottom, top)
+    loose_seat(bottom, waist=world(top)[:, 2].min() + 0.02)
     lighter(bottom, 0.35)
     denim(bottom, "hoodie_bottom", (104, 134, 168), (172, 198, 222), flecks=140, seed=7)
     no_socks(parts["Shoes"])

@@ -12,6 +12,7 @@ are named for what they are, so the office can find them (`Skin`, `Top`, `Bottom
     blender --background --factory-startup --python blender/scripts/build_people.py -- [--only name] [--shots]
 """
 import bpy, bmesh, os, sys, importlib, addon_utils
+import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import aokit  # noqa: E402
@@ -25,6 +26,9 @@ SLIM = [
     {"target": "torso-muscle-dorsi-decr", "value": 0.6},
     {"target": "torso-scale-horiz-decr", "value": 0.25},
 ]
+
+# How much thinner arms are than MPFB makes them (their shoulders too), as a share of their thickness.
+ARMS = 0.35
 
 # name: body (MPFB's macros, 0..1, and targets), skin, hair (and its color, or None for its own), eyebrows,
 # clothes as (asset, role, color or None to keep its texture's), and the outfit (outfits.py) made from them, if any.
@@ -142,6 +146,41 @@ def no_cornea(ob):
     bm.free()
 
 
+def bake_shapes(ob):
+    """Bakes `ob`'s shape keys (MPFB's targets) into its mesh, so what's done to its vertices after shows."""
+    if ob.data.shape_keys:
+        with bpy.context.temp_override(object=ob, active_object=ob):
+            bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
+
+
+def slimmer_arms(rig, obs, by):
+    """Draws every vertex bound to an upper arm or forearm toward that bone, by `by` of its distance times
+    its weight: arms, shoulders and sleeves that much thinner, still on their bones."""
+    segs = {}
+    for side in ("Left", "Right"):
+        for b in ("Arm", "ForeArm"):
+            pb = rig.pose.bones[f"mixamorig:{side}{b}"]
+            segs[pb.name] = (np.array(rig.matrix_world @ pb.head), np.array(rig.matrix_world @ pb.tail))
+    for ob in obs:
+        idx = {g.index: g.name for g in ob.vertex_groups if g.name in segs}
+        if not idx:
+            continue
+        M = np.array(ob.matrix_world)
+        Mi = np.linalg.inv(M)
+        for v in ob.data.vertices:
+            ws = [(idx[g.group], g.weight) for g in v.groups if g.group in idx and g.weight > 0]
+            if not ws:
+                continue
+            p = M[:3, :3] @ np.array(v.co) + M[:3, 3]
+            delta = np.zeros(3)
+            for bone, weight in ws:
+                a, b = segs[bone]
+                t = np.clip((p - a) @ (b - a) / ((b - a) @ (b - a)), 0, 1)
+                delta += (a + t * (b - a) - p) * by * weight
+            v.co = Mi[:3, :3] @ (p + delta) + Mi[:3, 3]
+        ob.data.update()
+
+
 def build(svc, name, spec):
     aokit.clear()
     HS = svc.HumanService
@@ -162,9 +201,12 @@ def build(svc, name, spec):
     body = HS.deserialize_from_dict(info, settings)
 
     rig = body.parent
+    meshes = [ob for ob in bpy.data.objects if ob.type == 'MESH']
+    for ob in meshes:
+        bake_shapes(ob)
+    slimmer_arms(rig, meshes, spec.get("arms", ARMS))
     roles = {c[0]: (c[1], c[2]) for c in spec["clothes"]}
     if spec.get("outfit"):
-        meshes = [ob for ob in bpy.data.objects if ob.type == 'MESH']
         parts = {role: next(ob for ob in meshes if asset.lower() in ob.name.lower()) for asset, (role, _) in roles.items()}
         parts["Hair"] = next(ob for ob in meshes if spec["hair"][0] in ob.name.lower())
         parts["Body"] = body

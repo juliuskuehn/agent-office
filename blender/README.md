@@ -105,15 +105,16 @@ A person can be dressed after a reference photo (a lookbook shot, say). The phot
 `look-<n>.*`, which git ignores: they're someone else's pictures. The person's spec in `build_people.py` takes
 MPFB's nearest clothes as a start and names a function in `outfits.py` as its `outfit`, which then:
 
-- **reshapes** them: `straight_legs` for wide trousers that hang straight, `tuck` to keep a waistband under a
-  top, `smooth` and `lighter` to iron out lumps and cut triangles, `swept_back` for a fringe off the eyes;
+- **reshapes** them: `straight_legs` for wide trousers that hang straight, `loose_seat` so they don't follow
+  the cleft, `tuck` to keep a waistband under a top, `smooth` and `lighter` to iron out lumps and cut triangles, `swept_back` for a fringe off the eyes;
 - **paints** them, in colors picked off the photo: `knit` recolors a knit and keeps its ribs, `denim` washes a
   pair of jeans (with `flecks` of paint), `checks` makes leather in squares;
 - **adds** what MPFB hasn't got: `hood` (a hoodie's, worn down) and `bag` (in the right hand, bound to it, with
   a material of its own, `Bag`).
 
 The cut only needs to be near; the colors and textures are what should match the photo. Bodies are normal to
-slim and athletic (`SLIM` in `build_people.py` narrows MPFB's shoulders and back).
+slim and athletic: `SLIM` in `build_people.py` narrows MPFB's shoulders and back, and `ARMS` makes arms and
+sleeves a third thinner than MPFB does.
 
 Work one out live first through the Blender MCP (the photo as an image empty beside the person helps), then
 put it in its function and rebuild. `look-1` is `outfits.hoodie`.
