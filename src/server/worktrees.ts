@@ -83,7 +83,7 @@ export class Worktrees {
     const from = this.currentBranch();
     if (!from || !this.hasOrigin()) return undefined;
     // Never stop to ask for a password: there's nobody at the office's terminal to type it.
-    const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+    const env = { ...gitEnv(), GIT_TERMINAL_PROMPT: '0' };
     this.fetching = execFileP('git', ['fetch', '--quiet', '--no-tags', 'origin', from], { cwd: this.dir, env, timeout: FETCH_TIMEOUT_MS })
       .then(
         () => (this.fetchError = undefined),
@@ -343,11 +343,11 @@ export class Worktrees {
   }
 
   private gitSync(args: string[], cwd = this.dir): string {
-    return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 20_000 }).trim();
+    return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 20_000, env: gitEnv() }).trim();
   }
 
   private async git(args: string[], cwd = this.dir): Promise<string> {
-    const { stdout } = await execFileP('git', args, { cwd, encoding: 'utf8', timeout: 60_000, maxBuffer: 16 * 1024 * 1024 });
+    const { stdout } = await execFileP('git', args, { cwd, encoding: 'utf8', timeout: 60_000, maxBuffer: 16 * 1024 * 1024, env: gitEnv() });
     return stdout.trim();
   }
 }
@@ -368,6 +368,16 @@ export function describeWork(s: WorktreeState): string {
   if (s.dirty) parts.push(`${s.dirty} uncommitted change${s.dirty === 1 ? '' : 's'}`);
   if (s.unpushed) parts.push(`${s.unpushed} unpushed commit${s.unpushed === 1 ? '' : 's'}`);
   return parts.join(', ');
+}
+
+/**
+ * `env` (the server's own by default) with git's messages left in English, whatever language the
+ * machine speaks: the office picks git's complaints out by their "fatal:"/"error:" and shows them in
+ * its English UI. Only the messages change; the character set stays the machine's.
+ */
+export function gitEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const { LC_ALL, ...rest } = env;
+  return { ...rest, ...(LC_ALL ? { LC_CTYPE: LC_ALL } : {}), LC_MESSAGES: 'C' };
 }
 
 /** The last line git printed, which is the one that says what's wrong. */

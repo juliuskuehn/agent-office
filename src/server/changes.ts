@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { ImageResult } from './decor.js';
+import { gitEnv } from './worktrees.js';
 import { changedImageType, type ChangedFile, type ChangeStatus, type ChangesState } from '../shared/protocol.js';
 
 // What a worker changed, for the Changes window at its desk: the files it touched and their diff,
@@ -68,7 +69,7 @@ interface Result {
 /** With `env`, it runs as someone signed in to their own GitHub (see signins.ts) instead of the office. */
 function run(cmd: string, args: string[], cwd: string, timeout = 30_000, env?: Record<string, string>): Promise<Result> {
   return new Promise((resolve, reject) => {
-    execFile(cmd, args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout, env: { ...(env ?? process.env), GIT_OPTIONAL_LOCKS: '0' } }, (err, stdout, stderr) => {
+    execFile(cmd, args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout, env: { ...gitEnv(env ?? process.env), GIT_OPTIONAL_LOCKS: '0' } }, (err, stdout, stderr) => {
       if (!err) return resolve({ out: stdout, err: stderr, code: 0 });
       const e = err as NodeJS.ErrnoException & { code?: number | string; killed?: boolean };
       if (typeof e.code === 'number') return resolve({ out: stdout, err: stderr, code: e.code });
@@ -82,7 +83,7 @@ function run(cmd: string, args: string[], cwd: string, timeout = 30_000, env?: R
 /** Like run(), for output that isn't text: a file's bytes at some commit. A failing command throws. */
 function runBytes(cmd: string, args: string[], cwd: string, maxBytes: number, timeout = 30_000): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    execFile(cmd, args, { cwd, encoding: 'buffer', maxBuffer: maxBytes, timeout, env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' } }, (err, stdout, stderr) => {
+    execFile(cmd, args, { cwd, encoding: 'buffer', maxBuffer: maxBytes, timeout, env: { ...gitEnv(), GIT_OPTIONAL_LOCKS: '0' } }, (err, stdout, stderr) => {
       if (!err) return resolve(stdout);
       const e = err as NodeJS.ErrnoException & { code?: number | string; killed?: boolean };
       if (typeof e.code === 'number') return reject(new GitError(reason({ out: '', err: stderr.toString('utf8'), code: e.code }, `${cmd} ${args[0]} failed`)));
