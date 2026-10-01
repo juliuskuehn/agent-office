@@ -13,11 +13,11 @@ import { noGrime } from './sanandreas';
 // model's own axes as if it stood straight with its arms hanging; RealBody turns those into the
 // bones' rotations each frame.
 
-export type PersonModel = 'blond' | 'bob' | 'afro' | 'tee' | 'pony' | 'buzz';
+export type PersonModel = 'hoodie' | 'bob' | 'afro' | 'tee' | 'pony' | 'buzz';
 
 /** Who has darker skin and who's a woman, for picking someone's stand-in. */
 const MODELS: Record<PersonModel, { dark: boolean; female: boolean }> = {
-  blond: { dark: false, female: false },
+  hoodie: { dark: false, female: false },
   buzz: { dark: false, female: false },
   tee: { dark: true, female: false },
   bob: { dark: false, female: true },
@@ -188,9 +188,9 @@ const CROWD: readonly { model: PersonModel; x: number; z: number; rotY: number; 
   const P = (model: PersonModel, dx: number, dz: number, rotY: number, pose: Pose) => ({ model, x: bar.x + dx, z: bar.z + dz, rotY, pose });
   return [
     P('pony', -0.5, 0.45, Math.PI + 0.15, 'lean'),
-    P('blond', 0.55, 0.48, Math.PI - 0.1, 'lean'),
+    P('hoodie', 0.55, 0.48, Math.PI - 0.1, 'lean'),
     P('bob', -1.6, 1.35, 2.5, 'drink'),
-    P('blond', -0.3, 1.75, Math.PI - 0.35, 'stand'),
+    P('hoodie', -0.3, 1.75, Math.PI - 0.35, 'stand'),
     P('afro', 1.0, 1.7, -2.5, 'talk'),
     P('tee', 1.9, 1.0, -1.9, 'drink'),
     P('bob', -2.6, 2.4, 2.2, 'dance'),
@@ -272,8 +272,9 @@ export function pose(r: SaRig, kind: Pose, p: number, t: number) {
     arm.shoulder.rotation.set(Math.sin(p * 0.8 + k) * 0.04, 0, sx * r.spread);
     arm.elbow.rotation.set(-0.18, 0, 0);
   }
-  for (const leg of r.legs) {
-    leg.hip.rotation.set(0, 0, 0);
+  // Feet a little apart, as people stand (and so wide trousers hang apart).
+  for (const [k, leg] of r.legs.entries()) {
+    leg.hip.rotation.set(0, 0, (k === 0 ? -1 : 1) * 0.05);
     leg.knee.rotation.set(0, 0, 0);
   }
   // The beat everyone dances to (126 bpm), and how far down each bounce is.

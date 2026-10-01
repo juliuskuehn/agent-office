@@ -7,9 +7,11 @@ import { openModel } from './glb';
 // on: the Mixamo bones it poses them by, the materials it finds by name, and a grown-up standing on the
 // floor facing forward.
 
-const PEOPLE = ['blond', 'bob', 'afro', 'tee', 'pony', 'buzz'];
+const PEOPLE = ['hoodie', 'bob', 'afro', 'tee', 'pony', 'buzz'];
 const BONES = ['Hips', 'Spine1', 'Spine2', 'Neck', 'Head', ...['Arm', 'ForeArm', 'Hand', 'UpLeg', 'Leg', 'Foot'].flatMap((b) => [`Left${b}`, `Right${b}`])];
 const MATERIALS = ['Skin', 'Top', 'Bottom', 'Shoes', 'Hair', 'Eyes', 'Brows'];
+/** What an outfit may add (outfits.py): a bag in the hand. */
+const EXTRAS = ['Bag'];
 
 for (const name of PEOPLE) {
   const person = openModel(`person-${name}`);
@@ -23,7 +25,9 @@ for (const name of PEOPLE) {
   });
 
   test(`${name}: a material for each part, by name`, () => {
-    assert.deepEqual([...person.materials()].sort(), [...MATERIALS].sort());
+    const have = [...person.materials()];
+    for (const m of MATERIALS) assert.ok(have.includes(m), `a material called ${m}`);
+    for (const m of have) assert.ok(MATERIALS.includes(m) || EXTRAS.includes(m), `no stray material (${m})`);
   });
 
   test(`${name}: grown-up sized, on the floor, facing forward`, () => {
@@ -32,6 +36,8 @@ for (const name of PEOPLE) {
     for (const n of nodes) {
       if (n.mesh === undefined) continue;
       for (const p of gltf.meshes[n.mesh].primitives) {
+        // The person, not what they carry: a bag hangs out to one side.
+        if (p.material !== undefined && EXTRAS.includes(gltf.materials?.[p.material]?.name ?? '')) continue;
         const a = gltf.accessors[p.attributes.POSITION];
         box.union(new Box3(new Vector3().fromArray(a.min!), new Vector3().fromArray(a.max!)));
       }

@@ -15,14 +15,16 @@ import bpy, bmesh, os, sys, importlib, addon_utils
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import aokit  # noqa: E402
+import outfits  # noqa: E402
 
-# name: body (MPFB's macros, 0..1), skin, hair (and its color, or None for its own), eyebrows, and clothes
-# as (asset, role, color or None to keep its texture's).
+# name: body (MPFB's macros, 0..1), skin, hair (and its color, or None for its own), eyebrows, clothes as
+# (asset, role, color or None to keep its texture's), and the outfit (outfits.py) made from them, if any.
 PEOPLE = {
-    "blond": dict(
-        macros=dict(gender=1.0, age=0.42, muscle=0.68, weight=0.45, height=0.62, proportions=0.7, race=dict(caucasian=1.0, african=0.0, asian=0.0)),
-        skin="young_caucasian_male", hair=("short02", (0.86, 0.76, 0.52)), brows="eyebrow001",
-        clothes=[("toigo_keyhole_tank_top", "Top", (0.04, 0.04, 0.045)), ("elvs_jeans_straight_leg", "Bottom", None), ("toigo_ankle_boots_male", "Shoes", (0.12, 0.12, 0.12))],
+    "hoodie": dict(
+        macros=dict(gender=1.0, age=0.36, muscle=0.5, weight=0.38, height=0.72, proportions=0.75, race=dict(caucasian=1.0, african=0.0, asian=0.0)),
+        skin="young_caucasian_male", hair=("short03", (0.2, 0.13, 0.09)), brows="eyebrow001",
+        clothes=[("toigo_fisherman_sweater", "Top", None), ("elvs_gored_elephant_pants", "Bottom", None), ("shoes01", "Shoes", (0.6, 0.42, 0.36))],
+        outfit=outfits.hoodie,
     ),
     "bob": dict(
         macros=dict(gender=0.0, age=0.4, muscle=0.5, weight=0.42, height=0.55, proportions=0.75, cupsize=0.55, race=dict(caucasian=0.8, african=0.0, asian=0.2)),
@@ -65,6 +67,9 @@ def diffuse_image(mat):
     """The picture a MakeSkin material colors its surface with (not its normal or bump map)."""
     if not mat or not mat.use_nodes:
         return None
+    named = mat.node_tree.nodes.get("diffuseTexture")
+    if named is not None and named.type == 'TEX_IMAGE' and named.image:
+        return named.image
     for node in mat.node_tree.nodes:
         if node.type == 'TEX_IMAGE' and node.image:
             n = node.image.name.lower()
@@ -147,8 +152,14 @@ def build(svc, name, spec):
 
     rig = body.parent
     roles = {c[0]: (c[1], c[2]) for c in spec["clothes"]}
+    if spec.get("outfit"):
+        meshes = [ob for ob in bpy.data.objects if ob.type == 'MESH']
+        parts = {role: next(ob for ob in meshes if asset.lower() in ob.name.lower()) for asset, (role, _) in roles.items()}
+        parts["Hair"] = next(ob for ob in meshes if spec["hair"][0] in ob.name.lower())
+        parts["Body"] = body
+        spec["outfit"](parts, rig)
     for ob in list(bpy.data.objects):
-        if ob.type != 'MESH':
+        if ob.type != 'MESH' or ob.get("dressed"):
             continue
         kind = svc.GeneralObjectProperties.get_value("object_type", entity_reference=ob) if hasattr(svc, "GeneralObjectProperties") else ""
         low = ob.name.lower()

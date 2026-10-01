@@ -9,9 +9,9 @@ import dogPupUrl from '../models/dog-pup.glb?url';
 import dogShibaUrl from '../models/dog-shiba.glb?url';
 import loungeUrl from '../models/lounge.glb?url';
 import personAfroUrl from '../models/person-afro.glb?url';
-import personBlondUrl from '../models/person-blond.glb?url';
 import personBobUrl from '../models/person-bob.glb?url';
 import personBuzzUrl from '../models/person-buzz.glb?url';
+import personHoodieUrl from '../models/person-hoodie.glb?url';
 import personPonyUrl from '../models/person-pony.glb?url';
 import personTeeUrl from '../models/person-tee.glb?url';
 import plantsUrl from '../models/plants.glb?url';
@@ -32,9 +32,9 @@ const MODELS = {
   plants: { url: plantsUrl, preload: true },
   // The San Andreas look's people (world/homies.ts): only loaded once it's on.
   'person-afro': { url: personAfroUrl, preload: false },
-  'person-blond': { url: personBlondUrl, preload: false },
   'person-bob': { url: personBobUrl, preload: false },
   'person-buzz': { url: personBuzzUrl, preload: false },
+  'person-hoodie': { url: personHoodieUrl, preload: false },
   'person-pony': { url: personPonyUrl, preload: false },
   'person-tee': { url: personTeeUrl, preload: false },
 } satisfies Record<string, { url: string; preload: boolean }>;

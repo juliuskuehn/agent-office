@@ -5,3 +5,6 @@ dist
 .DS_Store
 pw.txt
 __pycache__/
+
+# Reference photos for the people's outfits (blender/scripts/outfits.py): other people's pictures, kept local
+blender/refs/

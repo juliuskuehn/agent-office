@@ -11,7 +11,7 @@ changing its script and running it again.
 | `scripts/build_<name>.py` | One model (or a small set), exported as `src/client/models/<name>.glb` |
 | `scripts/build_dog.py`, `scripts/dog_breeds.py` | The office dog in every breed (the presets are in `dog_breeds.py`), each exported as `src/client/models/dog-<breed>.glb` with the same bones, sockets, materials and clips |
 
-| `scripts/build_people.py` | The San Andreas look's people (realistic, made with MPFB), each exported as `src/client/models/person-<name>.glb` with the same Mixamo bones and part materials |
+| `scripts/build_people.py`, `scripts/outfits.py` | The San Andreas look's people (realistic, made with MPFB), each exported as `src/client/models/person-<name>.glb` with the same Mixamo bones and part materials; `outfits.py` makes a person's clothes look like a reference photo |
 
 A helper only one model needs lives in that model's script. One that several need can join the kit, as a new
 function: the kit's existing functions are what every script already counts on, so change them only with
@@ -98,3 +98,19 @@ The people's bodies, skins, hair, tops and boots are CC0. Their jeans are CC-BY,
 
 To look at them as the office draws them, standing easy: `src/client/lab/props.html?show=people` shows all of them
 in a row, `&model=<name>` one, and `&dist=0.7&height=0&at=1.55` brings the camera up to a face.
+
+### Outfits from a photo
+
+A person can be dressed after a reference photo (a lookbook shot, say). The photo goes in `blender/refs/` as
+`look-<n>.*`, which git ignores: they're someone else's pictures. The person's spec in `build_people.py` takes
+MPFB's nearest clothes as a start and names a function in `outfits.py` as its `outfit`, which then:
+
+- **reshapes** them: `straight_legs` for wide trousers that hang straight, `tuck` to keep a waistband under a
+  top, `smooth` and `lighter` to iron out lumps and cut triangles, `swept_back` for a fringe off the eyes;
+- **paints** them, in colors picked off the photo: `knit` recolors a knit and keeps its ribs, `denim` washes a
+  pair of jeans (with `flecks` of paint), `checks` makes leather in squares;
+- **adds** what MPFB hasn't got: `hood` (a hoodie's, worn down) and `bag` (in the right hand, bound to it, with
+  a material of its own, `Bag`).
+
+Work one out live first through the Blender MCP (the photo as an image empty beside the person helps), then
+put it in its function and rebuild. `look-1` is `outfits.hoodie`.

@@ -161,7 +161,7 @@ const SHOW: Record<string, () => Shown | Promise<Shown>> = {
   },
   // The San Andreas look's people (world/homies.ts), standing easy side by side, or just model=<name>.
   people: async () => {
-    const models: PersonModel[] = q.has('model') ? [q.get('model') as PersonModel] : ['blond', 'bob', 'afro', 'tee', 'pony', 'buzz'];
+    const models: PersonModel[] = q.has('model') ? [q.get('model') as PersonModel] : ['hoodie', 'bob', 'afro', 'tee', 'pony', 'buzz'];
     const object = new THREE.Group();
     const bodies = await Promise.all(models.map((m) => body(m)));
     bodies.forEach((b, i) => {
