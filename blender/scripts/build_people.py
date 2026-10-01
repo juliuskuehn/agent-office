@@ -17,11 +17,21 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import aokit  # noqa: E402
 import outfits  # noqa: E402
 
-# name: body (MPFB's macros, 0..1), skin, hair (and its color, or None for its own), eyebrows, clothes as
-# (asset, role, color or None to keep its texture's), and the outfit (outfits.py) made from them, if any.
+# A slim, athletic build, not a wide one: narrower shoulders and back than MPFB's macros give on their own
+# (MPFB's targets, each 0..1).
+SLIM = [
+    {"target": "measure-shoulder-dist-decr", "value": 0.6},
+    {"target": "torso-vshape-decr", "value": 0.5},
+    {"target": "torso-muscle-dorsi-decr", "value": 0.6},
+    {"target": "torso-scale-horiz-decr", "value": 0.25},
+]
+
+# name: body (MPFB's macros, 0..1, and targets), skin, hair (and its color, or None for its own), eyebrows,
+# clothes as (asset, role, color or None to keep its texture's), and the outfit (outfits.py) made from them, if any.
 PEOPLE = {
     "hoodie": dict(
-        macros=dict(gender=1.0, age=0.36, muscle=0.5, weight=0.38, height=0.72, proportions=0.75, race=dict(caucasian=1.0, african=0.0, asian=0.0)),
+        macros=dict(gender=1.0, age=0.36, muscle=0.42, weight=0.3, height=0.7, proportions=0.8, race=dict(caucasian=1.0, african=0.0, asian=0.0)),
+        targets=SLIM,
         skin="young_caucasian_male", hair=("short03", (0.2, 0.13, 0.09)), brows="eyebrow001",
         clothes=[("toigo_fisherman_sweater", "Top", None), ("elvs_gored_elephant_pants", "Bottom", None), ("shoes01", "Shoes", (0.6, 0.42, 0.36))],
         outfit=outfits.hoodie,
@@ -138,6 +148,7 @@ def build(svc, name, spec):
     info = HS._create_default_human_info_dict()
     info["phenotype"].update({k: v for k, v in spec["macros"].items() if k != "race"})
     info["phenotype"]["race"].update(spec["macros"]["race"])
+    info["targets"] = spec.get("targets", [])
     info["rig"] = "mixamo"
     info["eyes"] = "high-poly.mhclo"
     info["eyebrows"] = spec["brows"] + ".mhclo"

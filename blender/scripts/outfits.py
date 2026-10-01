@@ -348,7 +348,8 @@ def bag(rig, name, img, size=(0.30, 0.21, 0.11)):
 # ---- The looks -----------------------------------------------------------------------------------
 
 def hoodie(parts, rig):
-    """look-1: a navy hoodie over light, wide jeans flecked with paint, brown loafers, a bag in checks."""
+    """look-1: a navy hoodie over light, wide jeans flecked with paint, brown loafers (the photo's bag in
+    checks left out for now)."""
     top, bottom = parts["Top"], parts["Bottom"]
     knit(top, "hoodie_top", (38, 50, 88))
     hood(top, neck=(rig.matrix_world @ rig.pose.bones["mixamorig:Neck"].head).z - 0.003)
@@ -359,4 +360,3 @@ def hoodie(parts, rig):
     denim(bottom, "hoodie_bottom", (104, 134, 168), (172, 198, 222), flecks=140, seed=7)
     no_socks(parts["Shoes"])
     swept_back(parts["Hair"])
-    bag(rig, f"{rig.name}.bag", checks("hoodie_bag", (58, 58, 56), (146, 140, 124), 10, 3, seed=3))

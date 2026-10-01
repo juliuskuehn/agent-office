@@ -112,5 +112,8 @@ MPFB's nearest clothes as a start and names a function in `outfits.py` as its `o
 - **adds** what MPFB hasn't got: `hood` (a hoodie's, worn down) and `bag` (in the right hand, bound to it, with
   a material of its own, `Bag`).
 
+The cut only needs to be near; the colors and textures are what should match the photo. Bodies are normal to
+slim and athletic (`SLIM` in `build_people.py` narrows MPFB's shoulders and back).
+
 Work one out live first through the Blender MCP (the photo as an image empty beside the person helps), then
 put it in its function and rebuild. `look-1` is `outfits.hoodie`.
