@@ -13,6 +13,7 @@ are named for what they are, so the office can find them (`Skin`, `Top`, `Bottom
 """
 import bpy, bmesh, os, sys, importlib, addon_utils
 import numpy as np
+from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import aokit  # noqa: E402
@@ -29,6 +30,12 @@ SLIM = [
 
 # How much thinner arms are than MPFB makes them (their shoulders too), as a share of their thickness.
 ARMS = 0.35
+# How much smaller hands are than MPFB's (toward the wrist): about 10.5% of their height long, not 11.
+HANDS = 0.05
+# How far each arm sits in toward the middle and down from where MPFB puts it (m), so shoulders slope off
+# to the arm as real ones do instead of standing out square: about 31 cm between the shoulder joints and
+# 38 across the shoulders for a slim young man, where MPFB makes 33.5 and 40.
+SHOULDERS = (0.012, 0.022)
 
 # name: body (MPFB's macros, 0..1, and targets), skin, hair (and its color, or None for its own), eyebrows,
 # clothes as (asset, role, color or None to keep its texture's), and the outfit (outfits.py) made from them, if any.
@@ -146,6 +153,19 @@ def no_cornea(ob):
     bm.free()
 
 
+def bone_weights(ob, rig):
+    """Each vertex's weights by bone, as the rig deforms it: only the groups that are bones (MPFB adds
+    others, like Right and body), scaled to add up to 1."""
+    bones = set(rig.data.bones.keys())
+    names = {g.index: g.name for g in ob.vertex_groups if g.name in bones}
+    out = []
+    for v in ob.data.vertices:
+        ws = [(names[g.group], g.weight) for g in v.groups if g.group in names and g.weight > 0]
+        total = sum(w for _, w in ws)
+        out.append([(n, w / total) for n, w in ws] if total > 0 else [])
+    return out
+
+
 def bake_shapes(ob):
     """Bakes `ob`'s shape keys (MPFB's targets) into its mesh, so what's done to its vertices after shows."""
     if ob.data.shape_keys:
@@ -155,29 +175,77 @@ def bake_shapes(ob):
 
 def slimmer_arms(rig, obs, by):
     """Draws every vertex bound to an upper arm or forearm toward that bone, by `by` of its distance times
-    its weight: arms, shoulders and sleeves that much thinner, still on their bones."""
+    its weight (a forearm by less, so the wrist still fits the hand): arms, shoulders and sleeves that much
+    thinner, still on their bones. And the hands a touch smaller, toward the wrist."""
     segs = {}
     for side in ("Left", "Right"):
-        for b in ("Arm", "ForeArm"):
+        for b, k in (("Arm", 1.0), ("ForeArm", 0.7)):
             pb = rig.pose.bones[f"mixamorig:{side}{b}"]
-            segs[pb.name] = (np.array(rig.matrix_world @ pb.head), np.array(rig.matrix_world @ pb.tail))
+            segs[pb.name] = (np.array(rig.matrix_world @ pb.head), np.array(rig.matrix_world @ pb.tail), k)
+    wrists = {}
+    for side in ("Left", "Right"):
+        hand = rig.data.bones[f"mixamorig:{side}Hand"]
+        at = np.array(rig.matrix_world @ rig.pose.bones[hand.name].head)
+        for b in [hand] + list(hand.children_recursive):
+            wrists[b.name] = at
     for ob in obs:
-        idx = {g.index: g.name for g in ob.vertex_groups if g.name in segs}
-        if not idx:
+        if not any(g.name in segs or g.name in wrists for g in ob.vertex_groups):
             continue
         M = np.array(ob.matrix_world)
         Mi = np.linalg.inv(M)
-        for v in ob.data.vertices:
-            ws = [(idx[g.group], g.weight) for g in v.groups if g.group in idx and g.weight > 0]
+        for v, bw in zip(ob.data.vertices, bone_weights(ob, rig)):
+            ws = [(n, w) for n, w in bw if n in segs or n in wrists]
             if not ws:
                 continue
             p = M[:3, :3] @ np.array(v.co) + M[:3, 3]
             delta = np.zeros(3)
             for bone, weight in ws:
-                a, b = segs[bone]
+                if bone in wrists:
+                    delta += (wrists[bone] - p) * HANDS * weight
+                    continue
+                a, b, k = segs[bone]
                 t = np.clip((p - a) @ (b - a) / ((b - a) @ (b - a)), 0, 1)
-                delta += (a + t * (b - a) - p) * by * weight
+                delta += (a + t * (b - a) - p) * by * k * weight
             v.co = Mi[:3, :3] @ (p + delta) + Mi[:3, 3]
+        ob.data.update()
+
+
+def sloped_shoulders(rig, obs, inward, drop):
+    """Moves each arm `inward` and `drop` down: its bones from the shoulder joint on, and every vertex bound
+    to them (half as far for those bound to its collarbone)."""
+    chain = {}
+    for side, sgn in (("Left", 1), ("Right", -1)):
+        arm = rig.data.bones[f"mixamorig:{side}Arm"]
+        for b in [arm] + list(arm.children_recursive):
+            chain[b.name] = (sgn, 1.0)
+        chain[f"mixamorig:{side}Shoulder"] = (sgn, 0.5)
+    bpy.ops.object.select_all(action='DESELECT')
+    rig.select_set(True)
+    bpy.context.view_layer.objects.active = rig
+    bpy.ops.object.mode_set(mode='EDIT')
+    into = rig.matrix_world.inverted().to_3x3()
+    eb = rig.data.edit_bones
+    # The arm's bones moved whole (their matrices, so each keeps its roll; setting a head and a tail can
+    # turn a bone about itself), from the top down; the collarbone stays, the arm no longer joined to it.
+    for side, sgn in (("Left", 1), ("Right", -1)):
+        top = eb[f"mixamorig:{side}Arm"]
+        top.use_connect = False
+        move = Matrix.Translation(into @ Vector((-sgn * inward, 0, -drop)))
+        for b in [top] + list(top.children_recursive):
+            b.matrix = move @ b.matrix
+    bpy.ops.object.mode_set(mode='OBJECT')
+    for ob in obs:
+        if not any(g.name in chain for g in ob.vertex_groups):
+            continue
+        back = np.linalg.inv(np.array(ob.matrix_world))[:3, :3]
+        for v, bw in zip(ob.data.vertices, bone_weights(ob, rig)):
+            d = np.zeros(3)
+            for n, w in bw:
+                if n in chain:
+                    sgn, k = chain[n]
+                    d += np.array((-sgn * inward, 0, -drop)) * k * w
+            if d.any():
+                v.co = np.array(v.co) + back @ d
         ob.data.update()
 
 
@@ -205,6 +273,7 @@ def build(svc, name, spec):
     for ob in meshes:
         bake_shapes(ob)
     slimmer_arms(rig, meshes, spec.get("arms", ARMS))
+    sloped_shoulders(rig, meshes, *spec.get("shoulders", SHOULDERS))
     roles = {c[0]: (c[1], c[2]) for c in spec["clothes"]}
     if spec.get("outfit"):
         parts = {role: next(ob for ob in meshes if asset.lower() in ob.name.lower()) for asset, (role, _) in roles.items()}
