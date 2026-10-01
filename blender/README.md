@@ -95,3 +95,6 @@ Mac), or load each with MPFB's *Load pack from zip file*.
 The people's bodies, skins, hair, tops and boots are CC0. Their jeans are CC-BY, from the pants02 pack:
 `elvs_jeans_straight_leg` and `elvs_jeans_bootcut` by Elvaerwyn, and `punkduck_female_tight_jeans` and
 `punkduck_male_classic_jeans` by punkduck.
+
+To look at them as the office draws them, standing easy: `src/client/lab/props.html?show=people` shows all of them
+in a row, `&model=<name>` one, and `&dist=0.7&height=0&at=1.55` brings the camera up to a face.

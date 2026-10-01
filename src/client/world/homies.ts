@@ -173,14 +173,15 @@ export class RealBody {
   }
 }
 
-async function body(model: PersonModel, top?: string): Promise<RealBody> {
+/** Loads `model` as a person's body, its top in `top` if given. */
+export async function body(model: PersonModel, top?: string): Promise<RealBody> {
   const { scene } = await loadModel(`person-${model}` as ModelName);
   return new RealBody(scene, top);
 }
 
 // ---- The crowd at the bar -----------------------------------------------------------------------
 
-type Pose = 'lean' | 'drink' | 'talk' | 'dance' | 'sway' | 'stand';
+export type Pose = 'lean' | 'drink' | 'talk' | 'dance' | 'sway' | 'stand';
 
 const CROWD: readonly { model: PersonModel; x: number; z: number; rotY: number; pose: Pose }[] = (() => {
   const bar = { x: KITCHEN.bar.x, z: KITCHEN.counter.maxZ };
@@ -259,7 +260,7 @@ export function buildHomies(): Homies {
 }
 
 /** Turns `r`'s joints for `pose`, `p` seconds into its own time and `t` on the shared beat. */
-function pose(r: SaRig, kind: Pose, p: number, t: number) {
+export function pose(r: SaRig, kind: Pose, p: number, t: number) {
   const [R, L] = r.arms;
   // Standing easy: weight from foot to foot, a breath, arms hanging.
   r.hips.position.set(Math.sin(p * 0.8) * 0.015, r.stand, 0);

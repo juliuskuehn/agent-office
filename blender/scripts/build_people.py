@@ -11,7 +11,7 @@ are named for what they are, so the office can find them (`Skin`, `Top`, `Bottom
 
     blender --background --factory-startup --python blender/scripts/build_people.py -- [--only name] [--shots]
 """
-import bpy, os, sys, importlib, addon_utils
+import bpy, bmesh, os, sys, importlib, addon_utils
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import aokit  # noqa: E402
@@ -115,6 +115,18 @@ def dress(ob, role, color, alpha=False, size=TEXTURE):
     ob.data.materials.append(mat)
 
 
+def no_cornea(ob):
+    """Takes the clear shell off each eye. It's mapped to the see-through corner of the eye's texture
+    (u > 0.85, v < 0.15), which the Eyes material doesn't keep, so it would hide the iris in white."""
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    uv = bm.loops.layers.uv.active
+    shell = [f for f in bm.faces if all(l[uv].uv.x > 0.85 and l[uv].uv.y < 0.15 for l in f.loops)]
+    bmesh.ops.delete(bm, geom=shell, context='FACES')
+    bm.to_mesh(ob.data)
+    bm.free()
+
+
 def build(svc, name, spec):
     aokit.clear()
     HS = svc.HumanService
@@ -145,6 +157,7 @@ def build(svc, name, spec):
         elif "eyebrow" in low:
             dress(ob, "Brows", None, alpha=True)
         elif "high-poly" in low or "eye" in low:
+            no_cornea(ob)
             dress(ob, "Eyes", None)
         elif spec["hair"][0] in low:
             dress(ob, "Hair", spec["hair"][1], alpha=True)

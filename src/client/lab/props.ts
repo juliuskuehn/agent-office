@@ -6,8 +6,10 @@
 //                      the default is three-quarters for one prop, nearly head-on for the row)
 //   height=<m>         how high the camera is over the middle of the prop (default a little above)
 //   dist=<m>           how far back the camera is (default: far enough to fit it)
+//   at=<m>             how high off the floor the point it looks at is (default the middle), for a face
 //   t=<seconds>        steps the prop's update (if it has one) at 60 fps up to t, then draws one frame
 //   floor=0            no floor, only its grid, to see what goes under it
+//   model=<name>       for show=people, just that person (one of homies.ts's PersonModel)
 // Once it has drawn, window.__ready holds each prop's size, triangles, draw calls and material names.
 
 import * as THREE from 'three';
@@ -26,6 +28,7 @@ import { Laptop } from '../world/laptop';
 import { Worker } from '../world/character';
 import { animalOf } from '../world/animals';
 import { IMAC_COLORS, imac, iphone, macMini } from '../world/macs';
+import { body, pose, type PersonModel } from '../world/homies';
 
 /** A prop as the lab shows it: what goes in the scene, and what moves it every frame, if anything. */
 interface Shown {
@@ -34,7 +37,7 @@ interface Shown {
 }
 
 /** Every prop, built the way the office builds it. Add yours here. */
-const SHOW: Record<string, () => Shown> = {
+const SHOW: Record<string, () => Shown | Promise<Shown>> = {
   jukebox: () => {
     const j = buildJukebox();
     j.show(true, 'Lab tune');
@@ -156,6 +159,17 @@ const SHOW: Record<string, () => Shown> = {
     [loungeCouch(), coffeeTable(), pouf('#06d6a0'), pouf('#ffd166')].forEach((o, i) => object.add(o.translateX(at[i])));
     return { object };
   },
+  // The San Andreas look's people (world/homies.ts), standing easy side by side, or just model=<name>.
+  people: async () => {
+    const models: PersonModel[] = q.has('model') ? [q.get('model') as PersonModel] : ['blond', 'bob', 'afro', 'tee', 'pony', 'buzz'];
+    const object = new THREE.Group();
+    const bodies = await Promise.all(models.map((m) => body(m)));
+    bodies.forEach((b, i) => {
+      b.root.position.x = i * 0.9;
+      object.add(b.root);
+    });
+    return { object, update: (dt, t) => bodies.forEach((b, i) => (pose(b.rig, 'stand', t + i * 1.37, t), b.apply())) };
+  },
   lambo: () => ({ object: supercar('lambo', '#ffd166').root }),
   ferrari: () => ({ object: supercar('ferrari', '#ef476f').root }),
 };
@@ -167,11 +181,13 @@ const stepTo = q.has('t') ? Number(q.get('t')) : null;
 const { scene, camera, renderer, render } = stage(document.getElementById('c') as HTMLCanvasElement, q.get('floor') !== '0');
 
 await preloadModels();
-const shown = names.map((name) => {
-  const make = SHOW[name];
-  if (!make) throw new Error(`No prop called ${name} (there's ${Object.keys(SHOW).join(', ')})`);
-  return { name, ...make() };
-});
+const shown = await Promise.all(
+  names.map(async (name) => {
+    const make = SHOW[name];
+    if (!make) throw new Error(`No prop called ${name} (there's ${Object.keys(SHOW).join(', ')})`);
+    return { name, ...(await make()) };
+  }),
+);
 
 // Side by side along x, each as wide as it is plus a gap, centred front to back.
 const boxes = shown.map((s) => new THREE.Box3().setFromObject(s.object));
@@ -195,8 +211,9 @@ function aim() {
   const fit = Math.max(extent.y / 2 / tan, extent.x / 2 / (tan * camera.aspect)) * 1.25 + extent.z / 2;
   const d = q.has('dist') ? Number(q.get('dist')) : fit;
   const up = q.has('height') ? Number(q.get('height')) : d * 0.25;
-  camera.position.set(middle.x + Math.sin(view) * d, middle.y + up, middle.z + Math.cos(view) * d);
-  camera.lookAt(middle);
+  const target = q.has('at') ? new THREE.Vector3(middle.x, Number(q.get('at')), middle.z) : middle;
+  camera.position.set(target.x + Math.sin(view) * d, target.y + up, target.z + Math.cos(view) * d);
+  camera.lookAt(target);
   camera.updateProjectionMatrix();
 }
 aim();
