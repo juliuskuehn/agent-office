@@ -13,13 +13,16 @@ import { store, lastFloor, lastSpot, loadProfile, loadSettings, rememberSpot, sa
 import { EYE_HEIGHT, PlayerController, groundAt, isTyping } from './player';
 import { Climber, gripOf, type Arrival, type Grip, type Way } from './climb';
 import { Driver } from './driving';
-import { Caffeine } from './caffeine';
+import { BUZZ_SECONDS, Caffeine } from './caffeine';
 import { CURTAIN_PICTURES, CURTAIN_SLOTS, buildOffice, type DeskView, type InteractKind, type Interactable } from './world/office';
 import { officeWorld, type World } from './world/world';
 import { BUILDERS } from './world/styles';
 import { Court } from './world/court';
 import { buildRooftop, type Rooftop } from './world/rooftop';
 import { DrunkVision } from './world/drunk';
+import { buildHomies, SaStandIn, standInModel } from './world/homies';
+import { SanAndreasLook, rememberSaLook, saGrime, saLookWanted } from './world/sanandreas';
+import { SaHud } from './ui/sahud';
 import { Booze, type Stage as Feeling } from './booze';
 import { djFrame, djTime } from './dnb';
 import { openBar } from './ui/bar';
@@ -370,6 +373,76 @@ const djAt = () => djTime(store.officeNow());
 /** Drinks from the bar, and how they make the world look (see booze.ts, world/drunk.ts). */
 const booze = new Booze();
 const drunkVision = new DrunkVision(renderer);
+/**
+ * The San Andreas test look (see world/sanandreas.ts), `?sa` on the address or F9: the filter and the
+ * grime, its HUD, the crowd at the kitchen's bar, everyone in a grown-up body dressed for the club
+ * (their stand-ins), and the camera over your shoulder.
+ */
+const saLook = new SanAndreasLook(renderer);
+const saHud = new SaHud();
+let saOn = false;
+let saHudTick = 0;
+const homies = buildHomies();
+homies.group.visible = false;
+office.group.add(homies.group);
+const standIns = new Map<Person, SaStandIn>();
+function setSa(on: boolean) {
+  saOn = on;
+  homies.group.visible = on;
+  saGrime(on);
+  saHud.show(on);
+  if (on) {
+    homies.load();
+    player.setView('third');
+    player.camDist = 4.2;
+    player.camPitch = 0.32;
+  } else {
+    saLook.release();
+    for (const p of standIns.keys()) p.setStandIn(null);
+    standIns.clear();
+    player.setView(settings.view);
+  }
+}
+window.addEventListener('keydown', (e) => {
+  if (e.code !== 'F9' || e.repeat) return;
+  e.preventDefault();
+  setSa(!saOn);
+  rememberSaLook(saOn);
+});
+
+/** In the look: everyone in their stand-in, moving as their figure does, and the HUD brought up to date. */
+function saStep(t: number, now: number) {
+  homies.update(t);
+  const people = [me, ...[...remotes.values()].map((r) => r.person)];
+  for (const p of people) {
+    let s = standIns.get(p);
+    if (!s) {
+      const { name, color } = p.who;
+      const skin = new THREE.Color(p.skinColor);
+      s = new SaStandIn(standInModel(name, skin.r * 0.3 + skin.g * 0.59 + skin.b * 0.11 < 0.5), color);
+      standIns.set(p, s);
+    }
+    // Their own figure until the body's loaded.
+    if (!s.ready) continue;
+    if (s.root.parent !== p.root) p.setStandIn(s.root);
+    s.follow(p.rig);
+  }
+  for (const p of standIns.keys()) if (!people.includes(p)) standIns.delete(p);
+  if (now - saHudTick < 100) return;
+  saHudTick = now;
+  const secs = now / 1000;
+  const dots = [...remotes.entries()].map(([id, r]) => ({ x: r.person.root.position.x, z: r.person.root.position.z, color: store.peers.get(id)?.color ?? '#ffffff' }));
+  for (const d of homies.spots) dots.push({ ...d, color: '#8f2f2f' });
+  saHud.update({
+    buzz: caffeine.left(secs) / BUZZ_SECONDS,
+    health: 1 - Math.min(1, player.drunk / 1.3),
+    money: store.workers.size * 1000 + 84,
+    x: player.pos.x,
+    z: player.pos.z,
+    yaw: player.camYaw,
+    dots: inOffice() && !upTop ? dots : [],
+  });
+}
 
 // ---- Networking & state -------------------------------------------------------------------------
 const net = new Net(() => store.profile, whereNow);
@@ -416,6 +489,7 @@ const telescope = new TelescopeView(
 // Everyone arrives by elevator (the welcome says exactly where).
 placeInCar();
 player.view = settings.view;
+if (saLookWanted()) setSa(true);
 const hands = new Hands(store.profile.color, me.skinColor);
 const caffeine = new Caffeine();
 /** No shaking the view for the coffee jitters when the system asks for less motion. */
@@ -4960,6 +5034,10 @@ function frame(ts?: number) {
   if (blurry) drunkVision.begin();
   else if (drunkVisionOn) drunkVision.release();
   drunkVisionOn = blurry;
+  // The San Andreas look, while you're sober (drunk, the drunk vision has the frame).
+  const sa = saOn && !blurry;
+  if (sa) saLook.begin();
+  if (saOn) saStep(t, now);
   renderer.render(scene, camera);
   pointToWaiting(now);
   // Not while the camera's up at the boss's monitor or the arcade, where they'd cover the screen.
@@ -4976,6 +5054,7 @@ function frame(ts?: number) {
     sky.shading(true);
   }
   if (blurry) drunkVision.end(drunk, t, !reduceMotion.matches);
+  if (sa) saLook.end(t, !reduceMotion.matches);
   loading.drew();
   requestAnimationFrame(frame);
 }

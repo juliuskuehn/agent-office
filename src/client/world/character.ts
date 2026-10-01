@@ -506,8 +506,27 @@ export class Person {
     this.shirt.color.set(color);
   }
 
+  /** Its joints and how far it's sat down, for a stand-in body to move with (see SaStandIn in world/homies.ts). */
+  get rig() {
+    return { body: this.body, head: this.head, legL: this.legL, legR: this.legR, armL: this.armL, armR: this.armR, sitK: this.sitK, seatHips: this.seatHips, hips: HIPS };
+  }
+
+  /** Swaps its own body for `standIn` (or back, with null); the name tag and the rest stay. */
+  setStandIn(standIn: THREE.Object3D | null) {
+    for (const o of [...this.root.children]) if (o.userData.standIn) this.root.remove(o);
+    this.body.visible = !standIn;
+    if (!standIn) return;
+    standIn.userData.standIn = true;
+    this.root.add(standIn);
+  }
+
   get skinColor(): string {
     return SKIN_TONES[this.look.skin];
+  }
+
+  /** Who they are and their shirt's color (their color), for a stand-in dressed like them. */
+  get who(): { name: string; color: string } {
+    return { name: this.name, color: `#${this.shirt.color.getHexString()}` };
   }
 
   setLook(look: Look) {

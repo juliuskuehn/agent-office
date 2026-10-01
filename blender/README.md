@@ -11,6 +11,8 @@ changing its script and running it again.
 | `scripts/build_<name>.py` | One model (or a small set), exported as `src/client/models/<name>.glb` |
 | `scripts/build_dog.py`, `scripts/dog_breeds.py` | The office dog in every breed (the presets are in `dog_breeds.py`), each exported as `src/client/models/dog-<breed>.glb` with the same bones, sockets, materials and clips |
 
+| `scripts/build_people.py`, `scripts/outfits.py` | The San Andreas look's people (realistic, made with MPFB), each exported as `src/client/models/person-<name>.glb` with the same Mixamo bones and part materials; `outfits.py` makes a person's clothes look like a reference photo |
+
 A helper only one model needs lives in that model's script. One that several need can join the kit, as a new
 function: the kit's existing functions are what every script already counts on, so change them only with
 every script rebuilt and checked.
@@ -74,3 +76,48 @@ These are what the office's code counts on. A model that breaks one looks wrong 
 
 Commit the script and the `.glb` together. Two runs of a script make the same model but not the same
 bytes (the exporter's triangle order varies), so commit a `.glb` only when the model changed.
+
+## The people (MPFB)
+
+`build_people.py` makes its people with [MPFB](https://extensions.blender.org/add-ons/mpfb/), MakeHuman for
+Blender, which needs installing once, with the asset packs the people are dressed from (from
+[makehumancommunity.org](https://static.makehumancommunity.org/assets/assetpacks.html); the `files.` mirror is
+the quick one):
+
+```bash
+blender --factory-startup -b --command extension install-file -r user_default --enable add-on-mpfb-v2.0.17.zip
+```
+
+Then unzip `makehuman_system_assets_cc0.zip`, `shirts01_cc0.zip`, `pants02_ccby.zip` and `shoes01_cc0.zip` into
+MPFB's data folder (`~/Library/Application Support/Blender/5.2/extensions/.user/user_default/mpfb/data` on a
+Mac), or load each with MPFB's *Load pack from zip file*.
+
+The people's bodies, skins, hair, tops and boots are CC0. Their jeans are CC-BY, from the pants02 pack:
+`elvs_jeans_straight_leg` and `elvs_jeans_bootcut` by Elvaerwyn, and `punkduck_female_tight_jeans` and
+`punkduck_male_classic_jeans` by punkduck.
+
+To look at them as the office draws them, standing easy: `src/client/lab/props.html?show=people` shows all of them
+in a row, `&model=<name>` one, and `&dist=0.7&height=0&at=1.55` brings the camera up to a face.
+
+### Outfits from a photo
+
+A person can be dressed after a reference photo (a lookbook shot, say). The photo goes in `blender/refs/` as
+`look-<n>.*`, which git ignores: they're someone else's pictures. The person's spec in `build_people.py` takes
+MPFB's nearest clothes as a start and names a function in `outfits.py` as its `outfit`, which then:
+
+- **reshapes** them: `straight_legs` for wide trousers that hang straight, `loose_seat` so they don't follow
+  the cleft, `tuck` to keep a waistband under a top, `smooth` and `lighter` to iron out lumps and cut triangles, `swept_back` for a fringe off the eyes;
+- **paints** them, in colors picked off the photo: `knit` recolors a knit and keeps its ribs, `denim` washes a
+  pair of jeans (with `flecks` of paint), `checks` makes leather in squares;
+- **adds** what MPFB hasn't got: `hood` (a hoodie's, worn down) and `bag` (in the right hand, bound to it, with
+  a material of its own, `Bag`).
+
+The cut only needs to be near; the colors and textures are what should match the photo. Bodies are normal to
+slim and athletic: `SLIM` in `build_people.py` narrows MPFB's shoulders and back, `ARMS` makes arms and
+sleeves a little thinner than MPFB does, and `SHOULDERS` sets the arms (bones and all) in and down, so
+shoulders slope off from the neck as real ones do; `HANDS` makes hands a touch smaller. The hoodie person is
+1.79 m, 45 cm across the shoulders, 30 at the chest, 28 at the waist and 35 at the hips. Each moves vertices by their bone weights scaled to add up to 1, as the rig deforms them (MPFB's
+weights don't, and it adds groups that aren't bones, like `Right` and `body`).
+
+Work one out live first through the Blender MCP (the photo as an image empty beside the person helps), then
+put it in its function and rebuild. `look-1` is `outfits.hoodie`.
