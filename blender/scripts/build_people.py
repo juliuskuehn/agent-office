@@ -20,28 +20,31 @@ import aokit  # noqa: E402
 import outfits  # noqa: E402
 
 # A slim, athletic build, not a wide one: narrower shoulders and back than MPFB's macros give on their own
-# (MPFB's targets, each 0..1).
+# (MPFB's targets, each 0..1). With a grown man's macros (age 0.45, muscle 0.5, weight 0.4, height 0.59)
+# that's 1.79 m, 45 cm across the shoulders, 30 at the chest, 28 at the waist and 35 at the hips.
 SLIM = [
-    {"target": "measure-shoulder-dist-decr", "value": 0.6},
-    {"target": "torso-vshape-decr", "value": 0.5},
-    {"target": "torso-muscle-dorsi-decr", "value": 0.6},
-    {"target": "torso-scale-horiz-decr", "value": 0.25},
+    {"target": "measure-shoulder-dist-decr", "value": 0.5},
+    {"target": "torso-vshape-decr", "value": 0.3},
+    {"target": "torso-muscle-dorsi-decr", "value": 0.3},
+    {"target": "measure-neck-circ-incr", "value": 0.3},
+    # A rounder deltoid, so the shoulder rounds into the arm.
+    {"target": "l-upperarm-shoulder-muscle-incr", "value": 0.4},
+    {"target": "r-upperarm-shoulder-muscle-incr", "value": 0.4},
 ]
 
-# How much thinner arms are than MPFB makes them (their shoulders too), as a share of their thickness.
-ARMS = 0.35
+# How much thinner arms are than MPFB makes them, as a share of their thickness.
+ARMS = 0.18
 # How much smaller hands are than MPFB's (toward the wrist): about 10.5% of their height long, not 11.
 HANDS = 0.05
 # How far each arm sits in toward the middle and down from where MPFB puts it (m), so shoulders slope off
-# to the arm as real ones do instead of standing out square: about 31 cm between the shoulder joints and
-# 38 across the shoulders for a slim young man, where MPFB makes 33.5 and 40.
-SHOULDERS = (0.012, 0.022)
+# to the arm as real ones do instead of standing out square from the neck.
+SHOULDERS = (0.012, 0.042)
 
 # name: body (MPFB's macros, 0..1, and targets), skin, hair (and its color, or None for its own), eyebrows,
 # clothes as (asset, role, color or None to keep its texture's), and the outfit (outfits.py) made from them, if any.
 PEOPLE = {
     "hoodie": dict(
-        macros=dict(gender=1.0, age=0.36, muscle=0.42, weight=0.3, height=0.7, proportions=0.8, race=dict(caucasian=1.0, african=0.0, asian=0.0)),
+        macros=dict(gender=1.0, age=0.45, muscle=0.5, weight=0.4, height=0.59, proportions=0.75, race=dict(caucasian=1.0, african=0.0, asian=0.0)),
         targets=SLIM,
         skin="young_caucasian_male", hair=("short03", (0.2, 0.13, 0.09)), brows="eyebrow001",
         clothes=[("toigo_fisherman_sweater", "Top", None), ("elvs_gored_elephant_pants", "Bottom", None), ("shoes01", "Shoes", (0.6, 0.42, 0.36))],
@@ -175,13 +178,14 @@ def bake_shapes(ob):
 
 def slimmer_arms(rig, obs, by):
     """Draws every vertex bound to an upper arm or forearm toward that bone, by `by` of its distance times
-    its weight (a forearm by less, so the wrist still fits the hand): arms, shoulders and sleeves that much
-    thinner, still on their bones. And the hands a touch smaller, toward the wrist."""
+    its weight (a forearm by less, so the wrist still fits the hand, and an upper arm only from a little
+    below the shoulder, so the shoulder stays round): arms and sleeves that much thinner, still on their
+    bones. And the hands a touch smaller, toward the wrist."""
     segs = {}
     for side in ("Left", "Right"):
-        for b, k in (("Arm", 1.0), ("ForeArm", 0.7)):
+        for b, k, fade in (("Arm", 1.0, 0.35), ("ForeArm", 0.7, 0.0)):
             pb = rig.pose.bones[f"mixamorig:{side}{b}"]
-            segs[pb.name] = (np.array(rig.matrix_world @ pb.head), np.array(rig.matrix_world @ pb.tail), k)
+            segs[pb.name] = (np.array(rig.matrix_world @ pb.head), np.array(rig.matrix_world @ pb.tail), k, fade)
     wrists = {}
     for side in ("Left", "Right"):
         hand = rig.data.bones[f"mixamorig:{side}Hand"]
@@ -203,8 +207,12 @@ def slimmer_arms(rig, obs, by):
                 if bone in wrists:
                     delta += (wrists[bone] - p) * HANDS * weight
                     continue
-                a, b, k = segs[bone]
+                a, b, k, fade = segs[bone]
                 t = np.clip((p - a) @ (b - a) / ((b - a) @ (b - a)), 0, 1)
+                # Eased in down from the shoulder joint, so the shoulder rounds into the arm without a step.
+                if fade:
+                    e = min(1.0, t / fade)
+                    k *= e * e * (3 - 2 * e)
                 delta += (a + t * (b - a) - p) * by * k * weight
             v.co = Mi[:3, :3] @ (p + delta) + Mi[:3, 3]
         ob.data.update()

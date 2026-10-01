@@ -114,9 +114,9 @@ MPFB's nearest clothes as a start and names a function in `outfits.py` as its `o
 
 The cut only needs to be near; the colors and textures are what should match the photo. Bodies are normal to
 slim and athletic: `SLIM` in `build_people.py` narrows MPFB's shoulders and back, `ARMS` makes arms and
-sleeves a third thinner than MPFB does, and `SHOULDERS` sets the arms (bones and all) in and down, so
-shoulders slope off as real ones do (about 31 cm between the joints, 38 across); `HANDS` makes hands a touch
-smaller. Each moves vertices by their bone weights scaled to add up to 1, as the rig deforms them (MPFB's
+sleeves a little thinner than MPFB does, and `SHOULDERS` sets the arms (bones and all) in and down, so
+shoulders slope off from the neck as real ones do; `HANDS` makes hands a touch smaller. The hoodie person is
+1.79 m, 45 cm across the shoulders, 30 at the chest, 28 at the waist and 35 at the hips. Each moves vertices by their bone weights scaled to add up to 1, as the rig deforms them (MPFB's
 weights don't, and it adds groups that aren't bones, like `Right` and `body`).
 
 Work one out live first through the Blender MCP (the photo as an image empty beside the person helps), then

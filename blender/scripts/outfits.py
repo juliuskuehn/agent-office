@@ -197,6 +197,14 @@ def straight_legs(ob, top=0.78, flare=0.06, part=0.05):
     set_world(ob, out)
 
 
+def inflate(ob, by):
+    """Lets a garment out by `by` all over (along its normals), so the body doesn't show through it."""
+    ob.data.update()
+    for v in ob.data.vertices:
+        v.co += v.normal * by
+    ob.data.update()
+
+
 def tuck(ob, under, by=0.02):
     """Pulls `ob`'s top (a waistband) in toward the body by `by` where it's under `under` (a top's hem),
     so it doesn't poke through."""
@@ -264,8 +272,9 @@ def no_socks(ob):
 def swept_back(ob, lift=0.75, back=0.035):
     """Combs a fringe up and back off the eyes: the hair in front of the forehead and below the crown."""
     w = world(ob)
-    f = np.clip((-0.07 - w[:, 1]) / 0.07, 0, 1) * np.clip((1.82 - w[:, 2]) / 0.1, 0, 1)
-    w[:, 2] += (1.815 - w[:, 2]) * lift * f
+    crown = w[:, 2].max()
+    f = np.clip((-0.07 - w[:, 1]) / 0.07, 0, 1) * np.clip((crown - 0.034 - w[:, 2]) / 0.1, 0, 1)
+    w[:, 2] += (crown - 0.039 - w[:, 2]) * lift * f
     w[:, 1] += back * f
     set_world(ob, w)
 
@@ -382,6 +391,7 @@ def hoodie(parts, rig):
     checks left out for now)."""
     top, bottom = parts["Top"], parts["Bottom"]
     knit(top, "hoodie_top", (38, 50, 88))
+    inflate(top, 0.004)
     hood(top, neck=(rig.matrix_world @ rig.pose.bones["mixamorig:Neck"].head).z - 0.003)
     smooth(bottom)
     straight_legs(bottom)
