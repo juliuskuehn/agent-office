@@ -2,7 +2,7 @@ import './style.css';
 import * as THREE from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import { sameLook } from '../shared/avatar';
-import { BALCONY, DESK_BY_ID, DESKS, ELEVATOR, ELEVATOR_CAR, FLOOR, GOLF_HOLE, LADDER, POLE, POLES, SLAB, STATION_AGENT, STOREY, WALL_HEIGHT, WALL_T, WING, WING_DESKS, beanbagsOut, deskBuilt, deskSeat, inElevator, inWing, roofDrop, seatPlace, streetBelow, vacantSeats, wingMinZ, wingRowZ, type DeskDef, type SeatDef, type SeatPlace, type StationKind } from '../shared/layout';
+import { DESK_BY_ID, DESKS, ELEVATOR, ELEVATOR_CAR, FLOOR, GOLF_HOLE, LADDER, POLE, POLES, SLAB, STATION_AGENT, STOREY, WALL_HEIGHT, WALL_T, WING, WING_DESKS, beanbagsOut, deskBuilt, deskSeat, inElevator, inWing, roofDrop, seatPlace, streetBelow, vacantSeats, wingMinZ, wingRowZ, type DeskDef, type SeatDef, type SeatPlace, type StationKind } from '../shared/layout';
 import { OFFICE_PLAN, seatOn, type MapPlan } from '../shared/maps';
 import { canLabel } from '../shared/floorplan';
 import { floorPalette } from '../shared/floors';
@@ -3094,19 +3094,9 @@ function setSmoking(on: boolean) {
   net.send({ t: 'act', smoke: on });
 }
 
-/** Out on the balcony (a little slack at the door), where smoking is allowed. */
-function onBalcony(): boolean {
-  const p = player.pos;
-  return inOffice() && p.y > -0.5 && p.y < 2 && p.x > BALCONY.minX - 0.5 && p.x < BALCONY.maxX + 0.5 && p.z > BALCONY.minZ - 0.8 && p.z < BALCONY.maxZ + 0.5;
-}
-
-/** Ends the break when the cigarette burns down, or when you take it back inside. */
+/** Ends the break when the cigarette burns down. */
 function checkSmokeBreak(now: number) {
-  if (!smokeBreakUntil) return;
-  if (!onBalcony()) {
-    setSmoking(false);
-    toast('🚭 No smoking inside, so you put it out');
-  } else if (now > smokeBreakUntil) {
+  if (smokeBreakUntil && now > smokeBreakUntil) {
     setSmoking(false);
     toast("That one's done. Back to work!");
   }
