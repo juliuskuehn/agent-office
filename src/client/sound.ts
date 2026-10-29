@@ -12,6 +12,7 @@ import { CABINET, DESKS, DJ_BOOTH, FLOOR, GONG, JUKEBOX, WINDOWS as OPENINGS, in
 import type { GongWhy } from '../shared/protocol';
 import { STREAM } from '../shared/jukebox';
 import { TunePlayer } from './music';
+import type { OrganNote } from './world/organ';
 import { DjPlayer } from './dnb';
 
 type Pos = { x: number; y: number; z: number };
@@ -112,6 +113,9 @@ export class OfficeSound {
   wing = 0;
   private analyser!: AnalyserNode;
   private buf!: Buffers;
+  /** The organ's hall (a long, dark tail of reverb) and its pipes' tone, made the first time it plays. */
+  private organHall: AudioBuffer | null = null;
+  private organWave: PeriodicWave | null = null;
   private volume = 0.7;
   private muted = false;
   private typists = new Map<string, Typist>();
@@ -1542,6 +1546,74 @@ export class OfficeSound {
   }
 
   /** Someone at the DJ booth blew the air horn. */
+  // ---- The organ ---------------------------------------------------------------------------------
+
+  /**
+   * The pipe organ plays `notes` from its pipes at `at`: loud enough to fill the floor, with the long
+   * tail of a stone church after every chord.
+   */
+  organ(at: Pos, notes: OrganNote[]) {
+    this.unlock();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    if (ctx.state === 'suspended') void ctx.resume();
+    this.count('organ');
+    const out = this.panner(at, 7, 0.45);
+    out.connect(this.ambience);
+    const bus = ctx.createGain();
+    bus.gain.value = 0.09;
+    bus.connect(out);
+    const hall = ctx.createConvolver();
+    hall.buffer = this.organHall ??= churchTail(ctx, 3.8);
+    const wet = ctx.createGain();
+    wet.gain.value = 0.55;
+    bus.connect(hall).connect(wet).connect(out);
+    this.organWave ??= plenum(ctx);
+    const t0 = ctx.currentTime + 0.05;
+    for (const n of notes) this.pipe(bus, n.n, t0 + n.t, n.d);
+    const end = t0 + Math.max(...notes.map((n) => n.t + n.d)) + 5;
+    // Let go of the graph once the hall has died away.
+    setTimeout(() => out.disconnect(), (end - ctx.currentTime) * 1000);
+  }
+
+  /** One pipe speaking: a breathy chiff as the wind hits it, then its tone, an octave over it, and a 16' under the bass. */
+  private pipe(dest: AudioNode, midi: number, t0: number, dur: number) {
+    const ctx = this.ctx!;
+    const f = 440 * 2 ** ((midi - 69) / 12);
+    const end = t0 + dur;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(1, t0 + 0.04);
+    g.gain.setValueAtTime(1, end);
+    g.gain.linearRampToValueAtTime(0, end + 0.12);
+    // High pipes are quieter than the deep ones, as the ear has it.
+    const loud = midi > 72 ? 0.7 : midi < 40 ? 1.3 : 1;
+    g.connect(dest);
+    const ranks: [mul: number, amp: number, wave: boolean][] = [[1, 0.6 * loud, true], [2, 0.25 * loud, false]];
+    if (midi < 60) ranks.push([0.5, 0.45 * loud, false]);
+    for (const [mul, amp, wave] of ranks) {
+      if (f * mul < 25) continue;
+      const o = ctx.createOscillator();
+      if (wave) o.setPeriodicWave(this.organWave!);
+      o.frequency.value = f * mul;
+      // A touch out of tune with each other, the way ranks of pipes are.
+      o.detune.value = rand(-4, 4);
+      const a = ctx.createGain();
+      a.gain.value = amp;
+      o.connect(a).connect(g);
+      o.start(t0);
+      o.stop(end + 0.2);
+    }
+    const chiff = this.noise(this.buf.white);
+    const cg = ctx.createGain();
+    cg.gain.setValueAtTime(0.0001, t0);
+    cg.gain.exponentialRampToValueAtTime(0.25, t0 + 0.01);
+    cg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.07);
+    chiff.connect(biquad(ctx, 'bandpass', Math.min(f * 3, 9000), 4)).connect(cg).connect(dest);
+    chiff.start(t0, rand(0, 4));
+    chiff.stop(t0 + 0.09);
+  }
+
   horn() {
     if (!this.dj) return;
     this.dj.horn();
@@ -1822,6 +1894,30 @@ interface Buffers {
   white: AudioBuffer;
   /** A slow, lumpy 0–1 signal for wobbling other sounds' volume. */
   gurgle: AudioBuffer;
+}
+
+/** A principal pipe's tone: strong in its lower harmonics, the odd ones a little stronger. */
+function plenum(ctx: BaseAudioContext): PeriodicWave {
+  const amps = [0, 1, 0.55, 0.42, 0.22, 0.2, 0.1, 0.09, 0.05, 0.04, 0.03];
+  return ctx.createPeriodicWave(new Float32Array(amps.length), new Float32Array(amps));
+}
+
+/** A church's reverb: noise in both ears dying away over `seconds`, its highs going first. */
+function churchTail(ctx: BaseAudioContext, seconds: number): AudioBuffer {
+  const sr = ctx.sampleRate;
+  const b = ctx.createBuffer(2, Math.ceil(sr * seconds), sr);
+  for (let c = 0; c < 2; c++) {
+    const d = b.getChannelData(c);
+    let low = 0;
+    for (let i = 0; i < d.length; i++) {
+      const t = i / sr;
+      // Smoothed more and more as it goes on, so the tail darkens.
+      const k = Math.min(0.9, 0.2 + t * 0.25);
+      low = low * k + (Math.random() * 2 - 1) * (1 - k);
+      d[i] = low * Math.exp((-t * 6.9) / seconds) * (t < 0.02 ? t / 0.02 : 1);
+    }
+  }
+  return b;
 }
 
 function makeBuffers(ctx: BaseAudioContext): Buffers {

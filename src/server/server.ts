@@ -87,6 +87,7 @@ interface Client {
   lastMoveAt: number;
   lastActAt: number;
   lastGongAt: number;
+  lastOrganAt: number;
   /** When they last hit a golf ball off the balcony. */
   lastGolfAt: number;
   /** When they last blew the DJ's air horn on the roof. */
@@ -1174,6 +1175,7 @@ export async function startServer(cfg: Config) {
       lastMoveAt: 0,
       lastActAt: 0,
       lastGongAt: 0,
+      lastOrganAt: 0,
       lastGolfAt: 0,
       lastHornAt: 0,
       lastTossAt: 0,
@@ -1925,6 +1927,14 @@ export async function startServer(cfg: Config) {
         if (!floor || now - c.lastGongAt < 500) break;
         c.lastGongAt = now;
         toFloor(floor, { t: 'gong', why: 'hit', by: who });
+        break;
+      }
+      case 'organ': {
+        const floor = floorOf(c);
+        const now = Date.now();
+        if (!floor || now - c.lastOrganAt < 2000) break;
+        c.lastOrganAt = now;
+        toFloor(floor, { t: 'organ', by: who });
         break;
       }
       case 'horn': {

@@ -1156,6 +1156,8 @@ export type ClientMsg =
   | { t: 'gh.comment'; kind: 'issue' | 'pull'; number: number; body: string }
   /** Hit the office gong (E at the gong); everyone on the floor hears it. */
   | { t: 'gong' }
+  /** Play the office's pipe organ (E at its console); everyone on the floor hears it. */
+  | { t: 'organ' }
   /** Blow the DJ's air horn on the roof; everyone up there hears it. */
   | { t: 'horn' }
   /** Close an issue, or a pull request without merging it; the answer comes back as gh.closed. */
@@ -1370,6 +1372,8 @@ export type ServerMsg =
    * over the desk it came from), or the last task on the queue just finished (a bigger party).
    */
   | { t: 'gong'; why: GongWhy; by?: string; pr?: number }
+  /** Someone on the floor sat down at the pipe organ and played (sent to everyone there, them too). */
+  | { t: 'organ'; by: string }
   /** Someone on the roof blew the DJ's air horn (sent to everyone up there, them too). */
   | { t: 'horn'; by: string }
   /** Sent to whoever asked to close it. */
