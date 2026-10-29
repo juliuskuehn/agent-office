@@ -125,10 +125,11 @@ export const BEANBAGS: DeskDef[] = (
     [12.2, -5.6, -Math.PI / 2],
     [12.2, 5.6, -Math.PI / 2],
     [-16.1, 3, Math.PI / 2],
-    // Clear of the board agents' kiosks, and of the floor in front of them.
+    // Clear of the board agents' kiosks, and of the floor in front of them (the last one west of the
+    // organ's console, too).
     [-13.2, -9.8, 0],
     [-12.6, 9.2, Math.PI / 2],
-    [-5.4, -9.8, 0],
+    [-6.4, -9.8, 0],
   ] as const
 ).map(([x, z, rotY], i) => ({ id: `beanbag-${i + 1}`, x, z, rotY, label: `Bean bag ${i + 1}`, beanbag: true }));
 
@@ -271,6 +272,22 @@ export const SPAWN = { x: 8, z: 7 } as const;
 
 /** The gong: on the north wall just past the elevator from the PR board, facing into the room. It rings when a PR merges. */
 export const GONG = { x: 11.8, z: FLOOR.minZ + 0.75, width: 1.9, height: 2.45 } as const;
+
+/**
+ * The pipe organ: a swallow's nest high on the north wall, hung over all three boards (above their
+ * labels) from the Issues board's far end to the elevator, with its towers up to the ceiling. `x` is
+ * its middle, over the task queue; `bottom` is the underside of its case, and the towers over the gaps
+ * between the boards hang down to `low`. Its console stands out on the floor in front of the task
+ * queue, the keys on its south side, so the organist sits with their back to the room.
+ */
+export const ORGAN = {
+  x: -3.95,
+  width: 21.5,
+  depth: 0.9,
+  bottom: 4.5,
+  low: 3.85,
+  console: { x: -3.95, z: -10, width: 1.9, depth: 0.9 },
+} as const;
 
 /** Potted plants around the room: where each stands, and how big it is. */
 export const PLANTS: readonly (readonly [x: number, z: number, scale: number])[] = [

@@ -17,6 +17,7 @@ import { supercar } from '../world/cars';
 import { buildGong } from '../world/gong';
 import { buildJukebox } from '../world/jukebox';
 import { buildKitchen } from '../world/kitchen';
+import { buildOrgan } from '../world/organ';
 import { preloadModels } from '../world/models';
 import { DESK_BOOKS, FLOOR_PLANTS, buildDesk, coffeeTable, deskBooks, deskMug, loungeCouch, plant, pouf } from '../world/office';
 import { toon } from '../world/toon';
@@ -39,6 +40,12 @@ const SHOW: Record<string, () => Shown> = {
     const g = buildGong();
     g.strike(1);
     return { object: g.group, update: (dt) => g.update(dt) };
+  },
+  organ: () => {
+    // The pipes and the console where the office has them; t=<seconds> lights the pipes that far into the Toccata.
+    const o = buildOrgan();
+    o.play();
+    return { object: o.group, update: (dt) => o.update(dt) };
   },
   cabinet: () => ({ object: buildCabinet().group }),
   kitchen: () => ({ object: buildKitchen().group }),

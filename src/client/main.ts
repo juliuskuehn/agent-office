@@ -16,6 +16,7 @@ import { Climber, gripOf, type Arrival, type Grip, type Way } from './climb';
 import { Driver } from './driving';
 import { Caffeine } from './caffeine';
 import { buildOffice, type DeskView, type InteractKind, type Interactable } from './world/office';
+import { TOCCATA } from './world/organ';
 import { officeWorld, type World } from './world/world';
 import { BUILDERS } from './world/styles';
 import { Court } from './world/court';
@@ -1244,6 +1245,9 @@ net.onMessage((msg) => {
         gotUp();
         toast(`${msg.by} got there first`, 'warn');
       }
+      break;
+    case 'organ':
+      organPlayed(msg.by);
       break;
     case 'horn':
       if (!upTop) break;
@@ -2943,6 +2947,7 @@ function interact(target: Interactable | null, key: DeskKey, note = aimedNote) {
       toast('🚬 Smoke break');
     }
   } else if (target.kind === 'gong') hitGong();
+  else if (target.kind === 'organ') playOrgan();
   else if (target.kind === 'whiteboard') openWhiteboard(net);
   else if (target.kind === 'cabinet') cabinet.play();
   else if (target.kind === 'ladder') grabLadder();
@@ -3495,6 +3500,22 @@ function hitGong() {
   net.send({ t: 'gong' });
 }
 
+// ---- The organ ------------------------------------------------------------------------------------
+/** E at the organ's console: the office plays it for everyone on the floor, you included (see organPlayed). */
+function playOrgan() {
+  if (office.organ.playing) return toast('🎹 The organ is already playing');
+  net.send({ t: 'organ' });
+}
+
+/** Someone on the floor played the organ: the Toccata from its pipes, unless it's still playing the last one. */
+function organPlayed(by: string) {
+  const organ = office.organ;
+  if (!inOffice() || upTop || organ.playing) return;
+  organ.play();
+  sound.organ(organ.pipes, TOCCATA);
+  if (by !== store.profile.name) toast(`🎹 ${by} is playing the organ`);
+}
+
 /** Where confetti comes from over a desk: above the worker's head. */
 function burstOver(deskId: string, n: number) {
   // Up and about in the castle: over wherever it is.
@@ -3683,6 +3704,10 @@ function hintFor(it: Interactable): Hint {
       return { k: String(smokeBreakUntil > 0), parts: [title('🚬 Ashtray'), key('E', smokeBreakUntil ? 'Stub it out' : 'Take a smoke break')] };
     case 'gong':
       return { k: '', parts: [title('🎉 Merge gong'), aside('rings when a PR merges'), key('E', 'Bang it')] };
+    case 'organ': {
+      const playing = office.organ.playing;
+      return { k: String(playing), parts: [title('🎹 Pipe organ'), aside(playing ? 'playing…' : "Bach's Toccata in D minor"), playing ? '' : key('E', 'Play it')] };
+    }
     case 'darts':
     case 'axe': {
       const game = it.kind;
@@ -4312,7 +4337,7 @@ document.addEventListener('pointerlockchange', () => {
 const raycaster = new THREE.Raycaster();
 const CROSSHAIR = new THREE.Vector2(0, 0);
 /** How close (meters from your eyes) you must be to use each kind of thing. */
-const REACH: Record<InteractKind, number> = { desk: 4.5, station: 4.5, coffee: 3, issues: 9, pulls: 9, services: 9, queue: 9, tv: 10, decor: 9, smoke: 3, elevator: 4.5, gong: 3.5, dog: 3.2, jukebox: 4, seat: 3, whiteboard: 7, cabinet: 4, ladder: 3, pole: 4, meeting: 7, bar: 3.5, dj: 6, golf: 3.5, ball: 3.2, bookshelf: 4, darts: 4, axe: 5.5, telescope: 3.5, car: 4, expand: 8, herald: 5 };
+const REACH: Record<InteractKind, number> = { desk: 4.5, station: 4.5, coffee: 3, issues: 9, pulls: 9, services: 9, queue: 9, tv: 10, decor: 9, smoke: 3, elevator: 4.5, gong: 3.5, dog: 3.2, jukebox: 4, seat: 3, whiteboard: 7, cabinet: 4, ladder: 3, pole: 4, meeting: 7, bar: 3.5, dj: 6, golf: 3.5, ball: 3.2, bookshelf: 4, darts: 4, axe: 5.5, telescope: 3.5, car: 4, expand: 8, herald: 5, organ: 3.5 };
 const eye = new THREE.Vector3();
 
 /** What the ray through `ndc` lands on first, whether it is within reach (plus `slack` meters), and where it hit. */
